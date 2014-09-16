@@ -1,6 +1,9 @@
 crtauth-java
 ============
 
+[![Master Build
+Status](https://travis-ci.org/spotify/crtauth-java.svg?branch=master)](https://travis-ci.org/spotify/crtauth-java)
+
 crtauth-java is a public key backed client/server authentication system written
 in Java.
 
