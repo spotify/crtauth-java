@@ -42,7 +42,7 @@ public class Challenge implements XdrSerializable {
   private byte[] uniqueData;
   private int validFromTimestamp;
   private int validToTimestamp;
-  private byte[] figerprint;
+  private byte[] fingerprint;
   private String serverName;
   private String userName;
 
@@ -76,7 +76,7 @@ public class Challenge implements XdrSerializable {
     }
 
     public Builder setFingerprint(byte[] fingerprint) {
-      challenge.figerprint = Arrays.copyOf(fingerprint, FINGERPRINT_LENGTH);
+      challenge.fingerprint = Arrays.copyOf(fingerprint, FINGERPRINT_LENGTH);
       return this;
     }
 
@@ -115,8 +115,8 @@ public class Challenge implements XdrSerializable {
     return validToTimestamp;
   }
 
-  public byte[] getFigerprint() {
-    return Arrays.copyOf(figerprint, figerprint.length);
+  public byte[] getFingerprint() {
+    return Arrays.copyOf(fingerprint, fingerprint.length);
   }
 
   public String getServerName() {
@@ -140,7 +140,7 @@ public class Challenge implements XdrSerializable {
       encoder.writeFixedLengthOpaque(UNIQUE_DATA_LENGTH, uniqueData);
       encoder.writeInt(validFromTimestamp);
       encoder.writeInt(validToTimestamp);
-      encoder.writeVariableLengthOpaque(figerprint);
+      encoder.writeVariableLengthOpaque(fingerprint);
       encoder.writeString(serverName);
       encoder.writeString(userName);
       return encoder.encode();
@@ -161,7 +161,7 @@ public class Challenge implements XdrSerializable {
       challenge.uniqueData = decoder.readFixedLengthOpaque(UNIQUE_DATA_LENGTH);
       challenge.validFromTimestamp = decoder.readInt();
       challenge.validToTimestamp = decoder.readInt();
-      challenge.figerprint = decoder.readVariableLengthOpaque();
+      challenge.fingerprint = decoder.readVariableLengthOpaque();
       challenge.serverName = decoder.readString();
       challenge.userName = decoder.readString();
     } catch(IOException e) {
@@ -179,7 +179,7 @@ public class Challenge implements XdrSerializable {
 
     if (validFromTimestamp != challenge.validFromTimestamp) return false;
     if (validToTimestamp != challenge.validToTimestamp) return false;
-    if (!Arrays.equals(figerprint, challenge.figerprint)) return false;
+    if (!Arrays.equals(fingerprint, challenge.fingerprint)) return false;
     if (!serverName.equals(challenge.serverName)) return false;
     if (!Arrays.equals(uniqueData, challenge.uniqueData)) return false;
     if (!userName.equals(challenge.userName)) return false;
@@ -192,7 +192,7 @@ public class Challenge implements XdrSerializable {
     int result = Arrays.hashCode(uniqueData);
     result = 31 * result + validFromTimestamp;
     result = 31 * result + validToTimestamp;
-    result = 31 * result + Arrays.hashCode(figerprint);
+    result = 31 * result + Arrays.hashCode(fingerprint);
     result = 31 * result + serverName.hashCode();
     result = 31 * result + userName.hashCode();
     return result;

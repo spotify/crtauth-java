@@ -22,9 +22,11 @@
 package com.spotify.crtauth;
 
 import com.google.common.base.Optional;
+import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.digest.DigestAlgorithm;
 import com.spotify.crtauth.digest.VerifiableDigestAlgorithm;
+import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.KeyNotFoundException;
 import com.spotify.crtauth.exceptions.SerializationException;
@@ -51,13 +53,24 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * This class implements the server-side methods used for authentication. Note that there is no
- * middleware layer that takes care of communication. In order to be able to authenticate a
- * remote client, a middleware layer wrapping the {@CrtAuthServer} class has to be implemented
- * separately.
+ * Instances of this class implements the server part of an crtauth authentication interaction.
+ * A consumer of this class would typically provide a means for remote clients to call the
+ * createChallenge() and createToken() methods using i.e. HTTPS.
+ *
+ * A client is expected to perform the following operations:
+ * <ol>
+ *   <li>Request a challenge by obtaining the output from createChallenge(),
+ *   given the username of the user about to authenticate.</li>
+ *   <li>Turn the challenge string into a response string using a private key. One implementation
+ *   of response generation is provided in CrtAuthClient.crateResponse()</li>
+ *   <li>Return the response String to the server in exchange for a token string.</li>
+ *   <li>Use the provided token to make authenticated API calls on the server. The API endpoints
+ *   in turn use verifyToken() to check that the token provided is indeed valid.</li>
+ * </ol>
+ *
  * The authentication mechanism is time sensitive, since it relies on a specified validity period
- * for tokens. A clock can be off at most CLOCK_FUGDE seconds before the server starts getting
- * too new/too old messages. Also, after the server sends a challenge,the client is supposed to
+ * for tokens. A clock can be off at most CLOCK_FUGDE seconds before the server starts emitting
+ * too new/too old messages. Also, after the server sends a challenge, the client is supposed to
  * produce a reply within RESP_TIMEOUT seconds.
  */
 public class CrtAuthServer {
@@ -162,13 +175,17 @@ public class CrtAuthServer {
   }
 
   /**
-   * Create a challenge to authenticate a given user.
+   * Create a challenge to authenticate a given user. The userName needs to be provided at this
+   * stage to encode a fingerprint of the public key stored in the server encoded in the challenge.
+   * This is required because a client can hold more than one private key and would need this
+   * information to pick the right key to sign the response.
+   *
    * @param userName The username of the user to be authenticated, in the format required by
-   *    KeyProviders
+   *    KeyProvider instances
    * @return A challenge wrapped in a verifiable message, to be processed by the client.
    * @throws KeyNotFoundException when the public key for the requesting user is not available.
    */
-  public VerifiableMessage<Challenge> createChallenge(String userName) throws KeyNotFoundException {
+  public String createChallenge(String userName) throws KeyNotFoundException {
     RSAPublicKey key = keyProvider.getKey(userName);
     byte[] uniqueData = new byte[Challenge.UNIQUE_DATA_LENGTH];
     UnsignedInteger timeNow = timeSupplier.getTime();
@@ -194,22 +211,32 @@ public class CrtAuthServer {
             .setDigest(digest)
             .setPayload(challenge)
             .build();
-    return verifiableChallenge;
+    try {
+      return BaseEncoding.base64().encode(verifiableChallenge.serialize());
+    } catch (SerializationException e) {
+      throw new Error(e);
+    }
   }
 
   /**
-   * Given the response to a previous challenge, produce a token is the response is valid or
-   * throw if it's not.
-   * @param response The client's response to the intial challenge.
-   * @return A token wrapped in a verifiable message.
+   * Given the response to a previous challenge, produce a token used by the client to authenticate.
+   *
+   * @param response The client's response to the initial challenge.
+   * @return A token used to authenticate subsequent requests with.
    * @throws InvalidInputException
    */
-  public VerifiableMessage<Token> createToken(Response response) throws InvalidInputException {
-    if(!response.getVerifiableChallenge().verify(digestAlgorithm)) {
+  public String createToken(String response) throws InvalidInputException {
+    Response resp = null;
+    try {
+      resp = new Response().deserialize(BaseEncoding.base64().decode(response));
+    } catch (DeserializationException e) {
+      throw new InvalidInputException(e);
+    }
+    if(!resp.getVerifiableChallenge().verify(digestAlgorithm)) {
       throw new InvalidInputException(
           "Challenge hmac verification failed, not matching our secret");
     }
-    Challenge challenge = response.getVerifiableChallenge().getPayload();
+    Challenge challenge = resp.getVerifiableChallenge().getPayload();
     if (!challenge.getServerName().equals(serverName)) {
       throw new InvalidInputException("Got challenge with the wrong server_name encoded.");
     }
@@ -226,8 +253,8 @@ public class CrtAuthServer {
     try {
       Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
       signature.initVerify(publicKey);
-      signature.update(response.getVerifiableChallenge().getPayload().serialize());
-      signatureVerified = signature.verify(response.getSignature());
+      signature.update(resp.getVerifiableChallenge().getPayload().serialize());
+      signatureVerified = signature.verify(resp.getSignature());
     } catch (NoSuchAlgorithmException |
         InvalidKeyException |
         SignatureException |
@@ -258,24 +285,40 @@ public class CrtAuthServer {
         .setDigest(digestAlgorithm.getDigest(serializedToken))
         .setPayload(token)
         .build();
-    return verifiableToken;
+    try {
+      return BaseEncoding.base64().encode(verifiableToken.serialize());
+    } catch (SerializationException e) {
+      throw new Error(e);
+    }
   }
 
   /**
    * Verify that a given token is valid, i.e. that it has been produced by the current
    * authenticator and that it's not outside of its validity period.
-   * @param verifiableToken A token wrapped in a {@code VerifiableMessage}.
+   *
+   * @param token the token to validate.
+   * @return the username that this token belongs to.
    * @throws InvalidInputException If the token appears to have been tampered with.
    * @throws TokenExpiredException If the token is outside of its validity period.
    */
-  public void validateToken(VerifiableMessage<Token> verifiableToken)
+  public String validateToken(String token)
       throws InvalidInputException, TokenExpiredException {
+    VerifiableMessage<Token> tokenDecoder = VerifiableMessage.getDefaultInstance(Token.class);
+    byte[] data = BaseEncoding.base64().decode(token);
+    VerifiableMessage<Token> verifiableToken = null;
+    try {
+      verifiableToken = tokenDecoder.deserialize(data);
+    } catch (DeserializationException e) {
+      throw new Error(String.format("failed deserialize token '%s'", token), e);
+    }
+
     if (!verifiableToken.verify(digestAlgorithm)) {
       throw new InvalidInputException("Token hmac verification failed");
     }
-    Token token = verifiableToken.getPayload();
-    if (token.isExpired(timeSupplier)) {
+    Token payload = verifiableToken.getPayload();
+    if (payload.isExpired(timeSupplier)) {
       throw new TokenExpiredException("The token is out if its validity period.");
     }
+    return payload.getUserName();
   }
 }

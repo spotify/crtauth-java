@@ -21,7 +21,10 @@
 
 package com.spotify.crtauth;
 
+import com.google.common.io.BaseEncoding;
+import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
+import com.spotify.crtauth.exceptions.SerializationException;
 import com.spotify.crtauth.exceptions.SignerException;
 import com.spotify.crtauth.protocol.Challenge;
 import com.spotify.crtauth.protocol.Response;
@@ -29,40 +32,60 @@ import com.spotify.crtauth.protocol.VerifiableMessage;
 import com.spotify.crtauth.signer.Signer;
 
 /**
- * This class implements the client-side methods used for authentication. Note that there is no
- * middleware layer that takes care of communication. In order to be able to authenticate a
- * remote client, a middleware layer wrapping the {@CrtAuthClient} class has to be implemented
- * separately.
+ * This class creates a response String given a challenge from a server using the
+ * Signer instance provided in the constructor. Additionally, this class verifies that the
+ * serverName embedded in the challenge matches serverName, to prevent attacks when a client
+ * is tricked to sign a challenge for an unrelated serverName by an attacker.
  */
 public class CrtAuthClient {
   private final Signer signer;
   private final String serverName;
 
+  /**
+   * Construct an CrtAuthClient instance backed by the provided signer.
+   *
+   * @param signer a Signer instance to back the constructed instance.
+   * @param serverName the name of the server this client gets requests from.
+   */
   public CrtAuthClient(Signer signer, String serverName) {
     this.signer = signer;
     this.serverName = serverName;
   }
 
   /**
-   * Return a response to the given challenge.
-   * @param verifiableChallenge A challenge wrapped in a verifiable message.
-   * @return The response to the challenge.
-   * @throws InvalidInputException If anything is wrong with the input challenge,
-   *    for example if the content of the challenge is compromised and suggests a potential MITM
-   *    attack.
+   * Generate a response String using the Signer of this instance, additionally verifying
+   * that the embedded serverName matches the serverName of this instance.
+   *
+   * @param challenge A challenge String obtained from a server.
+   * @return The response String to be returned to the server.
+   * @throws InvalidInputException if there is something wrong with the challenge.
    * @throws SignerException If a valid signature for the input challenge cannot be produced.
    */
-  public Response createResponse(VerifiableMessage<Challenge> verifiableChallenge)
+  public String createResponse(String challenge)
       throws InvalidInputException, SignerException {
-    Challenge challenge = verifiableChallenge.getPayload();
-    if (!challenge.getServerName().equals(serverName)) {
-      throw new InvalidInputException("Possible MITM attack.");
+    VerifiableMessage<Challenge> vmc = buildVMC(challenge);
+    Challenge payload = vmc.getPayload();
+    if (!payload.getServerName().equals(serverName)) {
+      throw new InvalidInputException("Invalid serverName in challenge. Possible MITM attack.");
     }
-    byte[] signature = signer.sign(challenge);
-    Response response = new Response.Builder()
-        .setSignature(signature)
-        .setVerifiableChallenge(verifiableChallenge)
-        .build();
-    return response;
+    byte[] signature = signer.sign(payload);
+    try {
+      return BaseEncoding.base64().encode(new Response.Builder()
+          .setSignature(signature)
+          .setVerifiableChallenge(vmc)
+          .build().serialize());
+    } catch (SerializationException e) {
+      throw new Error(e);
+    }
+  }
+
+  private VerifiableMessage<Challenge> buildVMC(String challenge) {
+    VerifiableMessage<Challenge> verifiableMessageDecoder =
+        VerifiableMessage.getDefaultInstance(Challenge.class);
+    try {
+      return verifiableMessageDecoder.deserialize(BaseEncoding.base64().decode(challenge));
+    } catch (DeserializationException e) {
+      throw new Error(e);
+    }
   }
 }

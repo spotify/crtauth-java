@@ -22,10 +22,10 @@
 package com.spotify.crtauth;
 
 import com.google.common.io.BaseEncoding;
+import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.keyprovider.InMemoryKeyProvider;
 import com.spotify.crtauth.protocol.Challenge;
-import com.spotify.crtauth.protocol.Response;
 import com.spotify.crtauth.protocol.VerifiableMessage;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
@@ -116,11 +116,17 @@ public class CrtAuthServerTest {
         .setSecret(serverSecret)
         .setKeyProvider(keyProvider)
         .build();
-    VerifiableMessage<Challenge> verifiableChallenge = crtAuthServer.createChallenge("noa");
-    Challenge challenge = verifiableChallenge.getPayload();
+    String challenge = crtAuthServer.createChallenge("noa");
     BaseEncoding encoding = BaseEncoding.base64();
     byte[] expectedFingerprint = encoding.decode("+6Hqb9N5");
-    assertArrayEquals(challenge.getFigerprint(), expectedFingerprint);
+    assertArrayEquals(extractFingerprint(challenge), expectedFingerprint);
+  }
+
+  private byte[] extractFingerprint(String challenge) throws DeserializationException {
+    VerifiableMessage<Challenge> decoder = VerifiableMessage.getDefaultInstance(Challenge.class);
+    byte[] bytes = BaseEncoding.base64().decode(challenge);
+    VerifiableMessage<Challenge> vChallenge = decoder.deserialize(bytes);
+    return vChallenge.getPayload().getFingerprint();
   }
 
 
@@ -131,8 +137,8 @@ public class CrtAuthServerTest {
         .setSecret("server_secret".getBytes())
         .setKeyProvider(keyProvider)
         .build();
-    VerifiableMessage<Challenge> verifiableChallenge = crtAuthServer.createChallenge("test");
-    Response response = crtAuthClient.createResponse(verifiableChallenge);
+    String verifiableChallenge = crtAuthServer.createChallenge("test");
+    String response = crtAuthClient.createResponse(verifiableChallenge);
     otherOuthServer.createToken(response);
   }
 }
