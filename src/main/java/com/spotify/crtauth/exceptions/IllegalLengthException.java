@@ -21,7 +21,7 @@
 
 package com.spotify.crtauth.exceptions;
 
-public class IllegalLengthException extends Exception {
+public class IllegalLengthException extends XdrException {
   public IllegalLengthException() {
     super();
   }

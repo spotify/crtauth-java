@@ -21,7 +21,7 @@
 
 package com.spotify.crtauth.exceptions;
 
-public class InvalidInputException extends Exception {
+public class InvalidInputException extends CrtAuthException {
   public InvalidInputException() {
     super();
   }

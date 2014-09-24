@@ -21,8 +21,12 @@
 
 package com.spotify.crtauth.exceptions;
 
-public class SerializationException extends Exception {
+public class SerializationException extends CrtAuthException {
   public SerializationException() {
     super();
+  }
+
+  public SerializationException(Throwable cause) {
+    super(cause);
   }
 }

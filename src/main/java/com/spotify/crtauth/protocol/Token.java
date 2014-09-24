@@ -21,19 +21,18 @@
 
 package com.spotify.crtauth.protocol;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.SerializationException;
+import com.spotify.crtauth.exceptions.XdrException;
 import com.spotify.crtauth.utils.TimeIntervals;
 import com.spotify.crtauth.utils.TimeSupplier;
 import com.spotify.crtauth.xdr.Xdr;
 import com.spotify.crtauth.xdr.XdrDecoder;
 import com.spotify.crtauth.xdr.XdrEncoder;
-
-import java.io.IOException;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Token implements XdrSerializable {
   private static final String MAGIC = "t";
@@ -109,8 +108,8 @@ public class Token implements XdrSerializable {
       encoder.writeInt(validTo);
       encoder.writeString(userName);
       return encoder.encode();
-    } catch (IOException e) {
-      throw new SerializationException();
+    } catch (XdrException e) {
+      throw new SerializationException(e);
     }
   }
 
@@ -125,8 +124,8 @@ public class Token implements XdrSerializable {
       token.validTo = decoder.readInt();
       token.userName = decoder.readString();
       return token;
-    } catch (IOException e) {
-      throw new DeserializationException();
+    } catch (XdrException e) {
+      throw new DeserializationException(e);
     }
   }
 

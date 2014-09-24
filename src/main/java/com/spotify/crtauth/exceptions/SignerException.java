@@ -21,7 +21,7 @@
 
 package com.spotify.crtauth.exceptions;
 
-public class SignerException extends Exception {
+public class SignerException extends CrtAuthException {
   public SignerException() {
     super();
   }

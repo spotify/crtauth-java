@@ -24,6 +24,7 @@ package com.spotify.crtauth.protocol;
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.SerializationException;
+import com.spotify.crtauth.exceptions.XdrException;
 import com.spotify.crtauth.utils.TimeIntervals;
 import com.spotify.crtauth.utils.TimeSupplier;
 import com.spotify.crtauth.xdr.Xdr;
@@ -144,8 +145,8 @@ public class Challenge implements XdrSerializable {
       encoder.writeString(serverName);
       encoder.writeString(userName);
       return encoder.encode();
-    } catch (IOException e) {
-      throw new SerializationException();
+    } catch (XdrException e) {
+      throw new SerializationException(e);
     }
   }
 
@@ -156,7 +157,7 @@ public class Challenge implements XdrSerializable {
     try {
       String magic = decoder.readFixedLengthString(1);
       if (!magic.equals(MAGIC)) {
-        throw new DeserializationException();
+        throw new DeserializationException("invalid magic byte");
       }
       challenge.uniqueData = decoder.readFixedLengthOpaque(UNIQUE_DATA_LENGTH);
       challenge.validFromTimestamp = decoder.readInt();
@@ -164,8 +165,8 @@ public class Challenge implements XdrSerializable {
       challenge.figerprint = decoder.readVariableLengthOpaque();
       challenge.serverName = decoder.readString();
       challenge.userName = decoder.readString();
-    } catch(IOException e) {
-      throw new DeserializationException();
+    } catch (final XdrException e) {
+      throw new DeserializationException(e);
     }
     return challenge;
   }

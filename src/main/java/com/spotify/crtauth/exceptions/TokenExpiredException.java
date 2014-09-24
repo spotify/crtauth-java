@@ -21,7 +21,7 @@
 
 package com.spotify.crtauth.exceptions;
 
-public class TokenExpiredException extends Exception {
+public class TokenExpiredException extends CrtAuthException {
   public TokenExpiredException() {
     super();
   }

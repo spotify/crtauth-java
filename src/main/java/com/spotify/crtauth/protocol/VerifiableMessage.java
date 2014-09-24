@@ -21,18 +21,18 @@
 
 package com.spotify.crtauth.protocol;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.Arrays;
+
+import com.spotify.crtauth.digest.DigestAlgorithm;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.SerializationException;
-import com.spotify.crtauth.digest.DigestAlgorithm;
+import com.spotify.crtauth.exceptions.XdrException;
 import com.spotify.crtauth.xdr.Xdr;
 import com.spotify.crtauth.xdr.XdrDecoder;
 import com.spotify.crtauth.xdr.XdrEncoder;
-
-import java.io.IOException;
-import java.util.Arrays;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class VerifiableMessage<T extends XdrSerializable> implements XdrSerializable {
   private static final String MAGIC = "v";
@@ -41,7 +41,7 @@ public class VerifiableMessage<T extends XdrSerializable> implements XdrSerializ
   private Class<T> payloadClass;
 
   public static class Builder<T extends XdrSerializable> {
-    VerifiableMessage verifiableMessage;
+    VerifiableMessage<T> verifiableMessage;
 
     public Builder(Class<T> clazz) {
       verifiableMessage = new VerifiableMessage<T>(clazz);
@@ -96,7 +96,8 @@ public class VerifiableMessage<T extends XdrSerializable> implements XdrSerializ
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
 
-    VerifiableMessage that = (VerifiableMessage) o;
+    @SuppressWarnings("unchecked")
+    VerifiableMessage<T> that = (VerifiableMessage<T>) o;
 
     if (!Arrays.equals(digest, that.digest)) return false;
     if (!payload.equals(that.payload)) return false;
@@ -119,26 +120,34 @@ public class VerifiableMessage<T extends XdrSerializable> implements XdrSerializ
       encoder.writeFixedLengthOpaque(DigestAlgorithm.DIGEST_LENGTH, digest);
       encoder.writeVariableLengthOpaque(payload.serialize());
       return encoder.encode();
-    } catch (IOException e) {
-      throw new SerializationException();
+    } catch (XdrException e) {
+      throw new SerializationException(e);
     }
   }
 
   @Override
   public VerifiableMessage<T> deserialize(byte[] bytes) throws DeserializationException {
     try {
-      VerifiableMessage verifiableMessage = new VerifiableMessage(this.payloadClass);
+      VerifiableMessage<T> verifiableMessage = new VerifiableMessage<T>(this.payloadClass);
       XdrDecoder decoder = Xdr.newDecoder(bytes);
       String magic = decoder.readFixedLengthString(1);
       checkArgument(magic.equals(MAGIC));
       verifiableMessage.digest = decoder.readFixedLengthOpaque(
           DigestAlgorithm.DIGEST_LENGTH);
       byte[] payloadBytes = decoder.readVariableLengthOpaque();
-      T payloadDeserializer = payloadClass.getConstructor().newInstance();
+      T payloadDeserializer = buildNestedInstance();
       verifiableMessage.payload = (T) payloadDeserializer.deserialize(payloadBytes);
       return verifiableMessage;
-    } catch (Exception e) {
-      throw new DeserializationException();
+    } catch (XdrException e) {
+      throw new DeserializationException(e);
+    }
+  }
+
+  private T buildNestedInstance() throws DeserializationException {
+    try {
+      return payloadClass.getConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
+      throw new DeserializationException("failed to build nested instance", e);
     }
   }
 }
