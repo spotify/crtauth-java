@@ -302,11 +302,10 @@ public class CrtAuthServer {
    * @throws InvalidInputException If the token appears to have been tampered with.
    * @throws TokenExpiredException If the token is outside of its validity period.
    */
-  public String validateToken(String token)
-      throws InvalidInputException, TokenExpiredException {
+  public String validateToken(String token) throws InvalidInputException, TokenExpiredException {
     VerifiableMessage<Token> tokenDecoder = VerifiableMessage.getDefaultInstance(Token.class);
     byte[] data = decode(token);
-    VerifiableMessage<Token> verifiableToken = null;
+    VerifiableMessage<Token> verifiableToken;
     try {
       verifiableToken = tokenDecoder.deserialize(data);
     } catch (DeserializationException e) {
