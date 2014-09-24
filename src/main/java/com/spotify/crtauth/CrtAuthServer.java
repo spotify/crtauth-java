@@ -227,17 +227,17 @@ public class CrtAuthServer {
    * @throws InvalidInputException
    */
   public String createToken(String response) throws InvalidInputException {
-    Response resp = null;
+    Response decodedResponse;
     try {
-      resp = new Response().deserialize(decode(response));
+      decodedResponse = new Response().deserialize(decode(response));
     } catch (DeserializationException e) {
       throw new InvalidInputException(e);
     }
-    if(!resp.getVerifiableChallenge().verify(digestAlgorithm)) {
+    if(!decodedResponse.getVerifiableChallenge().verify(digestAlgorithm)) {
       throw new InvalidInputException(
           "Challenge hmac verification failed, not matching our secret");
     }
-    Challenge challenge = resp.getVerifiableChallenge().getPayload();
+    Challenge challenge = decodedResponse.getVerifiableChallenge().getPayload();
     if (!challenge.getServerName().equals(serverName)) {
       throw new InvalidInputException("Got challenge with the wrong server_name encoded.");
     }
@@ -254,8 +254,8 @@ public class CrtAuthServer {
     try {
       Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
       signature.initVerify(publicKey);
-      signature.update(resp.getVerifiableChallenge().getPayload().serialize());
-      signatureVerified = signature.verify(resp.getSignature());
+      signature.update(decodedResponse.getVerifiableChallenge().getPayload().serialize());
+      signatureVerified = signature.verify(decodedResponse.getSignature());
     } catch (NoSuchAlgorithmException |
         InvalidKeyException |
         SignatureException |
