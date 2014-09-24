@@ -310,7 +310,7 @@ public class CrtAuthServer {
     try {
       verifiableToken = tokenDecoder.deserialize(data);
     } catch (DeserializationException e) {
-      throw new Error(String.format("failed deserialize token '%s'", token), e);
+      throw new InvalidInputException(String.format("failed deserialize token '%s'", token));
     }
 
     if (!verifiableToken.verify(digestAlgorithm)) {
