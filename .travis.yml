@@ -1,14 +1,8 @@
 language: java
 
 jdk:
-- oraclejdk7
+- openjdk6
 
 cache:
   directories:
   - $HOME/.m2
-
-before_install:
-- sudo apt-get update
-
-install:
-- sudo apt-get install -y libtcnative-1 
