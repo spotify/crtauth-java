@@ -21,7 +21,6 @@
 
 package com.spotify.crtauth;
 
-import com.google.common.io.BaseEncoding;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.SerializationException;
@@ -30,6 +29,9 @@ import com.spotify.crtauth.protocol.Challenge;
 import com.spotify.crtauth.protocol.Response;
 import com.spotify.crtauth.protocol.VerifiableMessage;
 import com.spotify.crtauth.signer.Signer;
+
+import static com.spotify.crtauth.ASCIICodec.decode;
+import static com.spotify.crtauth.ASCIICodec.encode;
 
 /**
  * This class creates a response String given a challenge from a server using the
@@ -70,7 +72,7 @@ public class CrtAuthClient {
     }
     byte[] signature = signer.sign(payload);
     try {
-      return BaseEncoding.base64().encode(new Response.Builder()
+      return encode(new Response.Builder()
           .setSignature(signature)
           .setVerifiableChallenge(vmc)
           .build().serialize());
@@ -83,7 +85,7 @@ public class CrtAuthClient {
     VerifiableMessage<Challenge> verifiableMessageDecoder =
         VerifiableMessage.getDefaultInstance(Challenge.class);
     try {
-      return verifiableMessageDecoder.deserialize(BaseEncoding.base64().decode(challenge));
+      return verifiableMessageDecoder.deserialize(decode(challenge));
     } catch (DeserializationException e) {
       throw new Error(e);
     }

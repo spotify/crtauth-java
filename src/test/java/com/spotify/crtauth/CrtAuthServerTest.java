@@ -21,7 +21,6 @@
 
 package com.spotify.crtauth;
 
-import com.google.common.io.BaseEncoding;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.keyprovider.InMemoryKeyProvider;
@@ -39,6 +38,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 
+import static com.spotify.crtauth.ASCIICodec.decode;
 import static org.junit.Assert.assertArrayEquals;
 
 public class CrtAuthServerTest {
@@ -117,15 +117,13 @@ public class CrtAuthServerTest {
         .setKeyProvider(keyProvider)
         .build();
     String challenge = crtAuthServer.createChallenge("noa");
-    BaseEncoding encoding = BaseEncoding.base64();
-    byte[] expectedFingerprint = encoding.decode("+6Hqb9N5");
+    byte[] expectedFingerprint = decode("-6Hqb9N5");
     assertArrayEquals(extractFingerprint(challenge), expectedFingerprint);
   }
 
   private byte[] extractFingerprint(String challenge) throws DeserializationException {
     VerifiableMessage<Challenge> decoder = VerifiableMessage.getDefaultInstance(Challenge.class);
-    byte[] bytes = BaseEncoding.base64().decode(challenge);
-    VerifiableMessage<Challenge> vChallenge = decoder.deserialize(bytes);
+    VerifiableMessage<Challenge> vChallenge = decoder.deserialize(decode(challenge));
     return vChallenge.getPayload().getFingerprint();
   }
 

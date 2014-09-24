@@ -22,7 +22,6 @@
 package com.spotify.crtauth;
 
 import com.google.common.base.Optional;
-import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.digest.DigestAlgorithm;
 import com.spotify.crtauth.digest.VerifiableDigestAlgorithm;
@@ -51,6 +50,8 @@ import java.util.Random;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.spotify.crtauth.ASCIICodec.decode;
+import static com.spotify.crtauth.ASCIICodec.encode;
 
 /**
  * Instances of this class implements the server part of an crtauth authentication interaction.
@@ -212,7 +213,7 @@ public class CrtAuthServer {
             .setPayload(challenge)
             .build();
     try {
-      return BaseEncoding.base64().encode(verifiableChallenge.serialize());
+      return encode(verifiableChallenge.serialize());
     } catch (SerializationException e) {
       throw new Error(e);
     }
@@ -228,7 +229,7 @@ public class CrtAuthServer {
   public String createToken(String response) throws InvalidInputException {
     Response resp = null;
     try {
-      resp = new Response().deserialize(BaseEncoding.base64().decode(response));
+      resp = new Response().deserialize(decode(response));
     } catch (DeserializationException e) {
       throw new InvalidInputException(e);
     }
@@ -286,7 +287,7 @@ public class CrtAuthServer {
         .setPayload(token)
         .build();
     try {
-      return BaseEncoding.base64().encode(verifiableToken.serialize());
+      return encode(verifiableToken.serialize());
     } catch (SerializationException e) {
       throw new Error(e);
     }
@@ -304,7 +305,7 @@ public class CrtAuthServer {
   public String validateToken(String token)
       throws InvalidInputException, TokenExpiredException {
     VerifiableMessage<Token> tokenDecoder = VerifiableMessage.getDefaultInstance(Token.class);
-    byte[] data = BaseEncoding.base64().decode(token);
+    byte[] data = decode(token);
     VerifiableMessage<Token> verifiableToken = null;
     try {
       verifiableToken = tokenDecoder.deserialize(data);
