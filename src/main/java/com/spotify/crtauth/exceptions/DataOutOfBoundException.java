@@ -21,8 +21,12 @@
 
 package com.spotify.crtauth.exceptions;
 
-public class DataOutOfBoundException extends Exception {
+public class DataOutOfBoundException extends XdrException {
   public DataOutOfBoundException() {
     super();
+  }
+
+  public DataOutOfBoundException(Throwable cause) {
+    super(cause);
   }
 }

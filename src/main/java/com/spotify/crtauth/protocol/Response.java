@@ -21,17 +21,17 @@
 
 package com.spotify.crtauth.protocol;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.Arrays;
+
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.SerializationException;
+import com.spotify.crtauth.exceptions.XdrException;
 import com.spotify.crtauth.xdr.Xdr;
 import com.spotify.crtauth.xdr.XdrDecoder;
 import com.spotify.crtauth.xdr.XdrEncoder;
-
-import java.io.IOException;
-import java.util.Arrays;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Response implements XdrSerializable {
   private static final String MAGIC = "r";
@@ -76,8 +76,8 @@ public class Response implements XdrSerializable {
       encoder.writeVariableLengthOpaque(signature);
       encoder.writeVariableLengthOpaque(verifiableChallenge.serialize());
       return encoder.encode();
-    } catch (IOException e) {
-      throw new SerializationException();
+    } catch (XdrException e) {
+      throw new SerializationException(e);
     }
   }
 
@@ -94,8 +94,8 @@ public class Response implements XdrSerializable {
       byte[] verifiableMessageBytes = decoder.readVariableLengthOpaque();
       response.verifiableChallenge = verifiableMessageDecoder.deserialize(verifiableMessageBytes);
       return response;
-    } catch (IOException e) {
-      throw new DeserializationException();
+    } catch (XdrException e) {
+      throw new DeserializationException(e);
 
     }
   }

@@ -21,7 +21,7 @@
 
 package com.spotify.crtauth.exceptions;
 
-public class KeyNotFoundException extends Exception {
+public class KeyNotFoundException extends CrtAuthException {
   public KeyNotFoundException() {
     super();
   }

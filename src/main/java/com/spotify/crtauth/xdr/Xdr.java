@@ -21,9 +21,8 @@
 
 package com.spotify.crtauth.xdr;
 
-import com.spotify.crtauth.exceptions.DataOutOfBoundException;
-import com.spotify.crtauth.exceptions.IllegalAsciiString;
-import com.spotify.crtauth.exceptions.IllegalLengthException;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
@@ -32,8 +31,10 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
+import com.spotify.crtauth.exceptions.DataOutOfBoundException;
+import com.spotify.crtauth.exceptions.IllegalAsciiString;
+import com.spotify.crtauth.exceptions.IllegalLengthException;
+import com.spotify.crtauth.exceptions.XdrException;
 
 /**
  * This class implements XDR encoding for a subset of the data types defined in RFC-4506. This
@@ -91,7 +92,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   }
 
   @Override
-  public String readString() throws IOException {
+  public String readString() throws XdrException {
     // In theory, this value is an unsigned int. In practice we support at most 512KB sequences, so
     // we'll just consider it as a normal integer.
     assertAligned();
@@ -102,7 +103,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   }
 
   @Override
-  public String readFixedLengthString(int length) throws IOException {
+  public String readFixedLengthString(int length) throws XdrException {
     assertAligned();
     byte[] rawBytes = readRawBytes(length);
     align();
@@ -110,7 +111,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   }
 
   @Override
-  public byte[] readFixedLengthOpaque(int length) throws IOException {
+  public byte[] readFixedLengthOpaque(int length) throws XdrException {
     assertAligned();
     byte[] rawBytes = readRawBytes(length);
     align();
@@ -118,7 +119,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   }
 
   @Override
-  public byte[] readVariableLengthOpaque() throws IOException {
+  public byte[] readVariableLengthOpaque() throws XdrException {
     assertAligned();
     int length = readInt();
     byte[] rawBytes = readRawBytes(length);
@@ -127,7 +128,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   }
 
   @Override
-  public int readInt() throws IOException {
+  public int readInt() throws XdrException {
     assertAligned();
     int read = byteBuffer.getInt();
     int finalPosition = byteBuffer.position();
@@ -137,18 +138,18 @@ public class Xdr implements XdrEncoder, XdrDecoder {
     return read;
   }
 
-  private byte[] readRawBytes(int length) throws IOException {
+  private byte[] readRawBytes(int length) throws XdrException {
     if (length < 0) {
-      throw new IOException(new IllegalLengthException());
+      throw new IllegalLengthException();
     }
     if (remaniningBytes() < length) {
-      throw new IOException(new DataOutOfBoundException());
+      throw new DataOutOfBoundException();
     }
     byte[] rawBytes = new byte[length];
     try {
       byteBuffer.get(rawBytes, 0, length);
     } catch (BufferUnderflowException | IndexOutOfBoundsException e) {
-      throw new IOException(e);
+      throw new DataOutOfBoundException(e);
     }
     return rawBytes;
   }
@@ -176,13 +177,13 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   }
 
   @Override
-  public void writeString(String string) throws IOException {
+  public void writeString(String string) throws XdrException {
     byte[] rawBytes = string.getBytes(StandardCharsets.US_ASCII);
     if (rawBytes.length != string.length()) {
-      throw new IOException(new IllegalAsciiString());
+      throw new IllegalAsciiString();
     }
     if (rawBytes.length + 1 > remaniningBytes()) {
-      throw new IOException(new DataOutOfBoundException());
+      throw new DataOutOfBoundException();
     }
     assertAligned();
     byteBuffer.putInt(rawBytes.length);
@@ -191,10 +192,10 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   }
 
   @Override
-  public void writeFixedLengthString(int length, String string) throws IOException {
+  public void writeFixedLengthString(int length, String string) throws XdrException {
     byte[] rawBytes = string.getBytes(StandardCharsets.US_ASCII);
     if (rawBytes.length != string.length()) {
-      throw new IOException(new IllegalAsciiString());
+      throw new IllegalAsciiString();
     }
     assertAligned();
     writeRawBytes(length, rawBytes);
@@ -202,14 +203,14 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   }
 
   @Override
-  public void writeFixedLengthOpaque(int length, byte[] bytes) throws IOException {
+  public void writeFixedLengthOpaque(int length, byte[] bytes) throws XdrException {
     assertAligned();
     writeRawBytes(length, bytes);
     pad();
   }
 
   @Override
-  public void writeVariableLengthOpaque(byte[] bytes) throws IOException {
+  public void writeVariableLengthOpaque(byte[] bytes) throws XdrException {
     int length = bytes.length;
     assertAligned();
     byteBuffer.putInt(length);
@@ -218,7 +219,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   }
 
   @Override
-  public void writeInt(int integer) throws IOException {
+  public void writeInt(int integer) throws XdrException {
     assertAligned();
     byteBuffer.putInt(integer);
     int finalPosition = byteBuffer.position();
@@ -226,9 +227,9 @@ public class Xdr implements XdrEncoder, XdrDecoder {
     checkState(finalPosition == byteBuffer.position());
   }
 
-  private void writeRawBytes(int length, byte[] rawBytes) throws IOException {
+  private void writeRawBytes(int length, byte[] rawBytes) throws XdrException {
     if (length > remaniningBytes()) {
-      throw new IOException(new DataOutOfBoundException());
+      throw new DataOutOfBoundException();
     }
     if (rawBytes.length > length) {
       rawBytes = Arrays.copyOf(rawBytes, length);
@@ -241,7 +242,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   }
 
   @Override
-  public byte[] encode() throws IOException {
+  public byte[] encode() throws XdrException {
     return Arrays.copyOf(byteBuffer.array(), byteBuffer.position());
   }
 }

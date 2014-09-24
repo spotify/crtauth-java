@@ -21,7 +21,7 @@
 
 package com.spotify.crtauth.exceptions;
 
-public class IllegalAsciiString extends Exception {
+public class IllegalAsciiString extends XdrException {
   public IllegalAsciiString() {
     super();
   }

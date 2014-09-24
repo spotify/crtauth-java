@@ -23,6 +23,8 @@ package com.spotify.crtauth.xdr;
 
 import java.io.IOException;
 
+import com.spotify.crtauth.exceptions.XdrException;
+
 /**
  * This interface represents a decoder of XDR-encoded binary blobs. It supports a subset of the
  * data types described in RFC 4506.
@@ -34,7 +36,7 @@ public interface XdrDecoder {
    * @throws IOException if anything goes wrong (for example, if trying to read data that doesn't
    *    represent a string or if trying to read data from a non-aligned buffer position).
    */
-  public String readString() throws IOException;
+  public String readString() throws XdrException;
   /**
    * Decode and return a fixed length string. This data type is not defined in RFC 4506,
    * so this method can be seen as a convenience method that reads a fix-length blob of opaque
@@ -43,7 +45,7 @@ public interface XdrDecoder {
    * @throws IOException if anything goes wrong (for example, if trying to read data that doesn't
    *    represent a string or if trying to read data from a non-aligned buffer position).
    */
-  public String readFixedLengthString(int length) throws IOException;
+  public String readFixedLengthString(int length) throws XdrException;
   /**
    * Decode and return a fixed length blob of opaque data. This data type is defined in RFC 4506,
    * Section 4.9.
@@ -51,7 +53,7 @@ public interface XdrDecoder {
    * @throws IOException if anything goes wrong (for example, if trying to read data that doesn't
    *    represent a string or if trying to read data from a non-aligned buffer position).
    */
-  public byte[] readFixedLengthOpaque(int length) throws IOException;
+  public byte[] readFixedLengthOpaque(int length) throws XdrException;
   /**
    * Decode and return a fixed length blob of opaque data. This data type is defined in RFC 4506,
    * Section 4.10.
@@ -59,12 +61,12 @@ public interface XdrDecoder {
    * @throws IOException if anything goes wrong (for example, if trying to read data that doesn't
    *    represent a string or if trying to read data from a non-aligned buffer position).
    */
-  public byte[] readVariableLengthOpaque() throws IOException;
+  public byte[] readVariableLengthOpaque() throws XdrException;
   /**
    * Decode and return an integer number. This data type is defined in RFC 4506, 4.1.
    * @return A 32-bit integer.
    * @throws IOException if anything goes wrong (for example, if trying to read data that doesn't
    *    represent a string or if trying to read data from a non-aligned buffer position).
    */
-  public int readInt() throws IOException;
+  public int readInt() throws XdrException;
 }
