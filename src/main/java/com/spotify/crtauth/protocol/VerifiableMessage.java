@@ -146,7 +146,7 @@ public class VerifiableMessage<T extends XdrSerializable> implements XdrSerializ
   private T buildNestedInstance() throws DeserializationException {
     try {
       return payloadClass.getConstructor().newInstance();
-    } catch (ReflectiveOperationException e) {
+    } catch (Exception e) {
       throw new DeserializationException("failed to build nested instance", e);
     }
   }

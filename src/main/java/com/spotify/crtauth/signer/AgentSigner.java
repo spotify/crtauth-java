@@ -61,7 +61,7 @@ public class AgentSigner implements Signer {
     PublicKey publicKey = null;
     try {
       publicKey = getKeyFromFingerprint(challenge.getFigerprint());
-    } catch (IOException | NoSuchAlgorithmException exception) {
+    } catch (Exception exception) {
       throw new SignerException();
     }
     if (publicKey == null) {
@@ -70,7 +70,7 @@ public class AgentSigner implements Signer {
     byte[] signed;
     try {
       signed = sshAgent.sign(publicKey, challenge.serialize());
-    } catch (IOException | SerializationException e) {
+    } catch (Exception e) {
       throw new SignerException();
     }
     return signed;

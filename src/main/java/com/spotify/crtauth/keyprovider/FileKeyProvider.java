@@ -21,18 +21,15 @@
 
 package com.spotify.crtauth.keyprovider;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import com.spotify.crtauth.exceptions.KeyNotFoundException;
 import com.spotify.crtauth.utils.TraditionalKeyParser;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -69,12 +66,12 @@ public class FileKeyProvider implements KeyProvider {
     }
     File keyFile = new File(keyRootDir, filename);
     try {
-      byte[] keyBytes = Files.readAllBytes(keyFile.toPath());
-      String keyString = new String(keyBytes, StandardCharsets.US_ASCII);
+      byte[] keyBytes = Files.toByteArray(keyFile);
+      String keyString = new String(keyBytes, Charsets.US_ASCII);
       RSAPublicKeySpec publicKeySpec = TraditionalKeyParser.parsePemPublicKey(keyString);
       RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
       return publicKey;
-    } catch (IOException | InvalidKeyException | InvalidKeySpecException e) {
+    } catch (Exception e) {
       throw new KeyNotFoundException(e);
     }
   }

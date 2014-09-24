@@ -21,20 +21,18 @@
 
 package com.spotify.crtauth.xdr;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-
-import java.io.IOException;
-import java.nio.BufferUnderflowException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-
+import com.google.common.base.Charsets;
 import com.spotify.crtauth.exceptions.DataOutOfBoundException;
 import com.spotify.crtauth.exceptions.IllegalAsciiString;
 import com.spotify.crtauth.exceptions.IllegalLengthException;
 import com.spotify.crtauth.exceptions.XdrException;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Arrays;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * This class implements XDR encoding for a subset of the data types defined in RFC-4506. This
@@ -99,7 +97,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
     int length = byteBuffer.getInt();
     byte[] rawBytes = readRawBytes(length);
     align();
-    return new String(rawBytes, StandardCharsets.US_ASCII);
+    return new String(rawBytes, Charsets.US_ASCII);
   }
 
   @Override
@@ -107,7 +105,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
     assertAligned();
     byte[] rawBytes = readRawBytes(length);
     align();
-    return new String(rawBytes, StandardCharsets.US_ASCII);
+    return new String(rawBytes, Charsets.US_ASCII);
   }
 
   @Override
@@ -148,7 +146,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
     byte[] rawBytes = new byte[length];
     try {
       byteBuffer.get(rawBytes, 0, length);
-    } catch (BufferUnderflowException | IndexOutOfBoundsException e) {
+    } catch (Exception e) {
       throw new DataOutOfBoundException(e);
     }
     return rawBytes;
@@ -178,7 +176,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
 
   @Override
   public void writeString(String string) throws XdrException {
-    byte[] rawBytes = string.getBytes(StandardCharsets.US_ASCII);
+    byte[] rawBytes = string.getBytes(Charsets.US_ASCII);
     if (rawBytes.length != string.length()) {
       throw new IllegalAsciiString();
     }
@@ -193,7 +191,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
 
   @Override
   public void writeFixedLengthString(int length, String string) throws XdrException {
-    byte[] rawBytes = string.getBytes(StandardCharsets.US_ASCII);
+    byte[] rawBytes = string.getBytes(Charsets.US_ASCII);
     if (rawBytes.length != string.length()) {
       throw new IllegalAsciiString();
     }

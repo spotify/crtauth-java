@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class InMemoryKeyProvider implements KeyProvider {
-  private final Map<String, RSAPublicKey> keys = new HashMap<>();
+  private final Map<String, RSAPublicKey> keys = new HashMap<String, RSAPublicKey>();
 
   public void putKey(String username, RSAPublicKey key) {
     keys.put(username, key);

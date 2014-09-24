@@ -21,6 +21,7 @@
 
 package com.spotify.crtauth.utils;
 
+import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.spotify.crtauth.exceptions.InvalidInputException;
@@ -28,7 +29,6 @@ import com.spotify.crtauth.exceptions.InvalidInputException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
@@ -64,7 +64,7 @@ public class TraditionalKeyParser {
     if (typeBytes == null || expBytes == null || modBytes == null) {
       throw new InvalidKeyException();
     }
-    String type = new String(typeBytes, StandardCharsets.US_ASCII);
+    String type = new String(typeBytes, Charsets.US_ASCII);
     if (!type.equals(PUBLIC_KEY_TYPE)) {
       throw new InvalidKeyException();
     }
@@ -101,7 +101,7 @@ public class TraditionalKeyParser {
    */
   private static List<byte[]> parsePrivateKeyASN1(ByteBuffer byteBuffer)
       throws InvalidInputException {
-    final List<byte[]> collection = new ArrayList<>();
+    final List<byte[]> collection = new ArrayList<byte[]>();
     while (byteBuffer.hasRemaining()) {
       byte type = byteBuffer.get();
       int length = UnsignedBytes.toInt(byteBuffer.get());

@@ -71,7 +71,7 @@ public class VerifiableMessageTest extends XdrSerializableTest<VerifiableMessage
     Challenge challenge = ChallengeTest.getDefaultChallenge();
     byte[] digest = new MessageHashDigestAlgorithm().getDigest(challenge.serialize());
     VerifiableMessage<Challenge> verifiableMessage =
-        new VerifiableMessage.Builder<>(Challenge.class)
+        new VerifiableMessage.Builder<Challenge>(Challenge.class)
             .setDigest(digest)
             .setPayload(challenge)
             .build();
