@@ -223,7 +223,7 @@ public class CrtAuthServer {
    * Given the response to a previous challenge, produce a token used by the client to authenticate.
    *
    * @param response The client's response to the initial challenge.
-   * @return A token used to authenticate subsequent requests with.
+   * @return A token used to authenticate subsequent requests.
    * @throws InvalidInputException
    */
   public String createToken(String response) throws InvalidInputException {
