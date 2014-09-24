@@ -77,8 +77,6 @@ public class Token implements XdrSerializable {
     }
   }
 
-  public Token() {}
-
   public boolean isExpired(TimeSupplier timeSupplier) {
     return TimeIntervals.isExpired(validFrom, validTo, timeSupplier);
   }
