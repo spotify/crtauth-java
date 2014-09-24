@@ -65,7 +65,7 @@ public class CrtAuthClient {
    */
   public String createResponse(String challenge)
       throws InvalidInputException, SignerException {
-    VerifiableMessage<Challenge> vmc = buildVMC(challenge);
+    VerifiableMessage<Challenge> vmc = buildVerifiableChallenge(challenge);
     Challenge payload = vmc.getPayload();
     if (!payload.getServerName().equals(serverName)) {
       throw new InvalidInputException("Invalid serverName in challenge. Possible MITM attack.");
@@ -77,17 +77,18 @@ public class CrtAuthClient {
           .setVerifiableChallenge(vmc)
           .build().serialize());
     } catch (SerializationException e) {
-      throw new Error(e);
+      throw new InvalidInputException(e);
     }
   }
 
-  private VerifiableMessage<Challenge> buildVMC(String challenge) {
+  private VerifiableMessage<Challenge> buildVerifiableChallenge(String challenge)
+      throws InvalidInputException {
     VerifiableMessage<Challenge> verifiableMessageDecoder =
         VerifiableMessage.getDefaultInstance(Challenge.class);
     try {
       return verifiableMessageDecoder.deserialize(decode(challenge));
     } catch (DeserializationException e) {
-      throw new Error(e);
+      throw new InvalidInputException(e);
     }
   }
 }
