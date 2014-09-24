@@ -24,13 +24,8 @@ public class ASCIICodecTest {
     Assert.assertArrayEquals(new byte[] {(byte)0xde, (byte)0xad}, ASCIICodec.decode("3q0="));
   }
 
-  @Test
+  @Test(expected = IllegalArgumentException.class)
   public void testDecodeInvalidData() {
-    try {
       ASCIICodec.decode("@");
-      Assert.fail("Should have thrown IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // expected
-    }
   }
 }
