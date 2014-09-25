@@ -8,7 +8,7 @@ crtauth-java is a public key backed client/server authentication system written
 in Java.
 
 crtauth-java is the Java port of the original crtauth implementation that can be
-found [here](thttps://github.com/spotify/crtauth). The java implementation is
+found [here](https://github.com/spotify/crtauth). The java implementation is
 fully wire compatible with the python version.
 
 crtauth itself is a system for authenticating a user to a centralized server.
