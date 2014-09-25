@@ -21,8 +21,15 @@
 
 package com.spotify.crtauth.xdr;
 
+import com.spotify.crtauth.exceptions.DataOutOfBoundException;
+import com.spotify.crtauth.exceptions.IllegalAsciiString;
+import com.spotify.crtauth.exceptions.IllegalLengthException;
+import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 
@@ -57,4 +64,84 @@ public class XdrTest {
     }
   }
 
+  @Test
+  // the idea here is to verify that we are really big endian, reading and writing.
+  public void testIntEndian() throws Exception {
+    byte[] data = new byte[] { (byte)0, (byte)0, (byte)4, (byte)0 };
+    XdrDecoder xdr = Xdr.newDecoder(data);
+    Assert.assertEquals(1024, xdr.readInt());
+
+    encoder.writeInt(512);
+    Assert.assertArrayEquals(new byte[] {(byte)0, (byte)0, (byte)2, (byte)0}, encoder.encode());
+  }
+
+  @Test
+  public void testRoundTripFixedString() throws Exception {
+    String s = "foobar";
+    encoder.writeFixedLengthString(s.length(), s);
+    byte[] encoded = encoder.encode();
+    XdrDecoder xdr = Xdr.newDecoder(encoded);
+    Assert.assertEquals(s, xdr.readFixedLengthString(s.length()));
+  }
+
+  @Test
+  public void readFixedLengthOpaque() throws Exception {
+    byte[] data = "foobar".getBytes();
+    encoder.writeFixedLengthOpaque(data.length, data);
+    byte[] encoded = encoder.encode();
+    XdrDecoder xdr = Xdr.newDecoder(encoded);
+    Assert.assertArrayEquals(data, xdr.readFixedLengthOpaque(data.length));
+  }
+
+  @Test
+  public void readVariableLengthOpaque() throws Exception {
+    byte[] data = "foobar".getBytes();
+    encoder.writeVariableLengthOpaque(data);
+    byte[] encoded = encoder.encode();
+    XdrDecoder xdr = Xdr.newDecoder(encoded);
+    Assert.assertArrayEquals(data, xdr.readVariableLengthOpaque());
+  }
+
+  @Test(expected = DataOutOfBoundException.class)
+  public void testLargeWrite() throws Exception {
+    byte[] data = new byte[1024 * 1024];
+    encoder.writeFixedLengthOpaque(data.length, data);
+  }
+
+  @Test
+  public void testLowerCountThanInputLength() throws Exception {
+    byte[] data = new byte[8];
+    Arrays.fill(data, (byte)42);
+    encoder.writeFixedLengthOpaque(7, data);
+    Assert.assertEquals(0, encoder.encode()[7]);
+  }
+
+  //TODO: figure out reasonable semantics for non-ascii
+  @Ignore
+  @Test(expected = IllegalAsciiString.class)
+  // contrary to what one would believe, the ascii encoding happily encodes any Unicode character
+  // where things outside US-ASCII encodes as '?'. This should be fixed, at some point.
+  public void testInvalidStringInput() throws Exception {
+    encoder.writeString("ñ");
+  }
+
+  @Test(expected = DataOutOfBoundException.class)
+  public void testReadTooMuch() throws Exception {
+    byte[] data = new byte[3];
+    XdrDecoder decoder = Xdr.newDecoder(data);
+    decoder.readFixedLengthOpaque(4);
+  }
+
+  @Test
+  public void testReadUnalignedLast() throws Exception {
+    byte[] data = new byte[3];
+    XdrDecoder decoder = Xdr.newDecoder(data);
+    decoder.readFixedLengthOpaque(3);
+  }
+
+  @Test(expected = IllegalLengthException.class)
+  public void testNegativeLengthRead() throws Exception {
+    XdrDecoder decoder = Xdr.newDecoder(new byte[0]);
+    decoder.readFixedLengthOpaque(-1);
+  }
 }
