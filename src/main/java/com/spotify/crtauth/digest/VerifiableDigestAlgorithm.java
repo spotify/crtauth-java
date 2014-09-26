@@ -21,26 +21,26 @@
 
 package com.spotify.crtauth.digest;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
+/**
+ * A DigestAlgorithm implementing HMAC using SHA1 as digest algorithm as specified by RFC2104.
+ */
 public class VerifiableDigestAlgorithm implements DigestAlgorithm {
-  private static final String DIGEST_ALGORITHM = "SHA-1";
-  private final byte[] secret;
+  private static final String MAC_ALGORITHM = "HmacSHA1";
+  private final SecretKeySpec secret;
 
   public VerifiableDigestAlgorithm(byte[] secret) {
-    this.secret = Arrays.copyOf(secret, secret.length);
+    this.secret = new SecretKeySpec(secret, MAC_ALGORITHM);
   }
 
   public byte[] getDigest(byte[] data) {
     try {
-      MessageDigest digest = MessageDigest.getInstance(DIGEST_ALGORITHM);
-      digest.reset();
-      digest.update(secret);
-      digest.update(data);
-      return Arrays.copyOf(digest.digest(), DIGEST_LENGTH);
-    } catch (NoSuchAlgorithmException e) {
+      Mac mac = Mac.getInstance(MAC_ALGORITHM);
+      mac.init(secret);
+      return mac.doFinal(data);
+    } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
