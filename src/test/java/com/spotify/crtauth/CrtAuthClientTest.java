@@ -23,10 +23,6 @@ package com.spotify.crtauth;
 
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.keyprovider.InMemoryKeyProvider;
-import com.spotify.crtauth.protocol.Challenge;
-import com.spotify.crtauth.protocol.Response;
-import com.spotify.crtauth.protocol.Token;
-import com.spotify.crtauth.protocol.VerifiableMessage;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
 import com.spotify.crtauth.utils.TraditionalKeyParser;
@@ -96,17 +92,17 @@ public class CrtAuthClientTest {
 
   @Test
   public void testValidResponse() throws Exception {
-    VerifiableMessage<Challenge> verifiableChallenge = crtAuthServer.createChallenge("test");
+    String challenge = crtAuthServer.createChallenge("test");
     CrtAuthClient crtAuthClient = new CrtAuthClient(signer, SERVER_NAME);
-    Response response = crtAuthClient.createResponse(verifiableChallenge);
-    VerifiableMessage<Token> verifiableToken = crtAuthServer.createToken(response);
+    String response = crtAuthClient.createResponse(challenge);
+    String verifiableToken = crtAuthServer.createToken(response);
     crtAuthServer.validateToken(verifiableToken);
   }
 
   @Test(expected = InvalidInputException.class)
   public void testMitm() throws Exception {
-    VerifiableMessage<Challenge> verifiableChallenge = crtAuthServer.createChallenge("test");
+    String verifiableChallenge = crtAuthServer.createChallenge("test");
     CrtAuthClient crtAuthClient = new CrtAuthClient(signer, "another_server");
-    Response response = crtAuthClient.createResponse(verifiableChallenge);
+    crtAuthClient.createResponse(verifiableChallenge);
   }
 }
