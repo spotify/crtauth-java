@@ -24,11 +24,16 @@ package com.spotify.crtauth.utils;
 import com.google.common.io.BaseEncoding;
 import org.junit.Test;
 
+import java.io.DataOutput;
+import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPublicKeySpec;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 
 public class PublicKeysTest {
   private static final String PUBLIC_PEM_KEY = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDjKPW24a0" +
@@ -38,7 +43,7 @@ public class PublicKeysTest {
       "hsw0cDDPNFigU/UDw2kW9CUlGscrPs+0sj9wim4ZwMC9hmiFS/yfzHOaoTylFkG6ia9W/ test@spotify.net";
 
   @Test
-  public void testFigerprint() throws Exception {
+  public void testFingerprint() throws Exception {
     final KeyFactory keyFactory = KeyFactory.getInstance("RSA");
     final String expectedEncodedFingerprint = "c/XR6bib";
     BaseEncoding encoding = BaseEncoding.base64();
@@ -48,5 +53,14 @@ public class PublicKeysTest {
     byte[] actual = PublicKeys.generateFingerprint(publicKey);
     byte[] expected = encoding.decode(expectedEncodedFingerprint);
     assertArrayEquals(actual, expected);
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void testWritVariableLengthOpaque() throws IOException {
+    // full test coverage silliness
+    new PublicKeys();
+    DataOutput dataOutput = mock(DataOutput.class);
+    doThrow(new IOException()).when(dataOutput).writeInt(anyInt());
+    PublicKeys.writeVariableLengthOpaque(new byte[0], dataOutput);
   }
 }
