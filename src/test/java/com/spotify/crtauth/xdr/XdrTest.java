@@ -24,14 +24,11 @@ package com.spotify.crtauth.xdr;
 import com.spotify.crtauth.exceptions.DataOutOfBoundException;
 import com.spotify.crtauth.exceptions.IllegalAsciiString;
 import com.spotify.crtauth.exceptions.IllegalLengthException;
-import com.sun.scenario.effect.impl.sw.java.JSWBlend_EXCLUSIONPeer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import sun.reflect.annotation.ExceptionProxy;
 
-import java.nio.BufferUnderflowException;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
@@ -80,16 +77,15 @@ public class XdrTest {
 
   @Test
   public void testRoundTripFixedString() throws Exception {
-    String s = "foobar";
-    encoder.writeFixedLengthString(s.length(), s);
+    encoder.writeFixedLengthString(TEST_STRING.length(), TEST_STRING);
     byte[] encoded = encoder.encode();
     XdrDecoder xdr = Xdr.newDecoder(encoded);
-    Assert.assertEquals(s, xdr.readFixedLengthString(s.length()));
+    Assert.assertEquals(TEST_STRING, xdr.readFixedLengthString(TEST_STRING.length()));
   }
 
   @Test
   public void readFixedLengthOpaque() throws Exception {
-    byte[] data = "foobar".getBytes();
+    byte[] data = TEST_STRING.getBytes();
     encoder.writeFixedLengthOpaque(data.length, data);
     byte[] encoded = encoder.encode();
     XdrDecoder xdr = Xdr.newDecoder(encoded);
@@ -98,7 +94,7 @@ public class XdrTest {
 
   @Test
   public void readVariableLengthOpaque() throws Exception {
-    byte[] data = "foobar".getBytes();
+    byte[] data = TEST_STRING.getBytes();
     encoder.writeVariableLengthOpaque(data);
     byte[] encoded = encoder.encode();
     XdrDecoder xdr = Xdr.newDecoder(encoded);
