@@ -26,6 +26,7 @@ import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.keyprovider.InMemoryKeyProvider;
 import com.spotify.crtauth.protocol.Challenge;
 import com.spotify.crtauth.protocol.Response;
+import com.spotify.crtauth.protocol.Token;
 import com.spotify.crtauth.protocol.VerifiableMessage;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
@@ -134,5 +135,18 @@ public class CrtAuthServerTest {
     VerifiableMessage<Challenge> verifiableChallenge = crtAuthServer.createChallenge("test");
     Response response = crtAuthClient.createResponse(verifiableChallenge);
     otherOuthServer.createToken(response);
+  }
+
+  @Test(expected = InvalidInputException.class)
+  public void testWrongSecret() throws Exception {
+    CrtAuthServer otherServer = new CrtAuthServer.Builder()
+        .setServerName("SERVER_NAME")
+        .setSecret("another_secret".getBytes())
+        .setKeyProvider(keyProvider)
+        .build();
+    VerifiableMessage<Challenge> verifiableChallenge = crtAuthServer.createChallenge("test");
+    Response response = crtAuthClient.createResponse(verifiableChallenge);
+    VerifiableMessage<Token> token = crtAuthServer.createToken(response);
+    otherServer.validateToken(token);
   }
 }
