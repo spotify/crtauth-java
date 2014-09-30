@@ -1,0 +1,15 @@
+* write test case for FileKeyProvider
+* move InMemoryKeyProvider to test module
+
+
+* simplify Signer interface (we only need to sign arbitrary byte arrays)
+  sign(byte[] data, PublicKeyFingerprint fingerprint)?
+* move agent signer into a separate package
+
+* Better naming for Digest algorithm (naming from HMAC standard perhaps?)
+* Make all internal classes nonpublic (less packages perhaps?)
+* Replace InvalidInputException (and friends) with IllegalArgumentException
+
+* write LDAP KeyProvider (reconnecting!)
+* sort out CrtAuthServer constructor argument confusion (DigestAlgorithm and secret amounts
+  to the same thing)
