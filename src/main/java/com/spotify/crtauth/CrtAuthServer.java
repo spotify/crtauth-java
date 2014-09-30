@@ -38,11 +38,8 @@ import com.spotify.crtauth.utils.PublicKeys;
 import com.spotify.crtauth.utils.RealTimeSupplier;
 import com.spotify.crtauth.utils.TimeSupplier;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Signature;
-import java.security.SignatureException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
 import java.util.Random;
@@ -190,7 +187,7 @@ public class CrtAuthServer {
       throw new RuntimeException(e);
     }
     VerifiableMessage<Challenge> verifiableChallenge =
-        new VerifiableMessage.Builder<>(Challenge.class)
+        new VerifiableMessage.Builder<Challenge>(Challenge.class)
             .setDigest(digest)
             .setPayload(challenge)
             .build();
@@ -228,10 +225,7 @@ public class CrtAuthServer {
       signature.initVerify(publicKey);
       signature.update(response.getVerifiableChallenge().getPayload().serialize());
       signatureVerified = signature.verify(response.getSignature());
-    } catch (NoSuchAlgorithmException |
-        InvalidKeyException |
-        SignatureException |
-        SerializationException e) {
+    } catch (Exception e) {
       throw new RuntimeException(e);
     }
     if (!signatureVerified) {
@@ -254,7 +248,7 @@ public class CrtAuthServer {
     } catch (SerializationException e) {
       throw new RuntimeException(e);
     }
-    VerifiableMessage<Token> verifiableToken = new VerifiableMessage.Builder<>(Token.class)
+    VerifiableMessage<Token> verifiableToken = new VerifiableMessage.Builder<Token>(Token.class)
         .setDigest(digestAlgorithm.getDigest(serializedToken))
         .setPayload(token)
         .build();

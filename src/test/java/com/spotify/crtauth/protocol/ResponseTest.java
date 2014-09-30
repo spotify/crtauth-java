@@ -35,7 +35,7 @@ public class ResponseTest extends XdrSerializableTest<Response> {
   protected Response getInstance() throws Exception {
     Challenge challenge = ChallengeTest.getDefaultChallenge();
     VerifiableMessage<Challenge> verifiableChallenge =
-        new VerifiableMessage.Builder<>(Challenge.class)
+        new VerifiableMessage.Builder<Challenge>(Challenge.class)
             .setPayload(challenge)
             .setDigest(new MessageHashDigestAlgorithm().getDigest(challenge.serialize()))
             .build();
