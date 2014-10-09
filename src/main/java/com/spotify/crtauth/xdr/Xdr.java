@@ -43,8 +43,10 @@ import static com.google.common.base.Preconditions.checkState;
 public class Xdr implements XdrEncoder, XdrDecoder {
   // The size of the maximum payload we're able to serialize. There is no such value mandated by
   // RFC-4506, but 512KB should be more than enough for anything we need to do.
+
+  // WARNING: MAX_XDR_SIZE % BLOCK_SIZE == 0 needs to hold, to avoid the case where padding
+  // overflows the buffer.
   private final static int MAX_XDR_SIZE = 512 * 1024;
-  private final static int BYTE_SIZE = Byte.SIZE;
   // Data is aligned over 4-byte block boundaries.
   private final static int BLOCK_SIZE = 4;
   private final ByteBuffer byteBuffer;
@@ -137,6 +139,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   }
 
   private byte[] readRawBytes(int length) throws XdrException {
+    // TODO: move to com.google.common.base.Preconditions;
     if (length < 0) {
       throw new IllegalLengthException();
     }
@@ -146,6 +149,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
     byte[] rawBytes = new byte[length];
     try {
       byteBuffer.get(rawBytes, 0, length);
+      // TODO: dead code
     } catch (Exception e) {
       throw new DataOutOfBoundException(e);
     }
@@ -178,6 +182,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   public void writeString(String string) throws XdrException {
     byte[] rawBytes = string.getBytes(Charsets.US_ASCII);
     if (rawBytes.length != string.length()) {
+      // TODO: Dead code, see XdrTest.testInvalidInputString()
       throw new IllegalAsciiString();
     }
     if (rawBytes.length + 1 > remaniningBytes()) {
@@ -193,6 +198,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
   public void writeFixedLengthString(int length, String string) throws XdrException {
     byte[] rawBytes = string.getBytes(Charsets.US_ASCII);
     if (rawBytes.length != string.length()) {
+      // TODO: Dead code, see XdrTest.testInvalidInputString()
       throw new IllegalAsciiString();
     }
     assertAligned();
@@ -233,6 +239,7 @@ public class Xdr implements XdrEncoder, XdrDecoder {
       rawBytes = Arrays.copyOf(rawBytes, length);
     }
     byteBuffer.put(rawBytes);
+    // TODO: dead code if MAX_XDR_SIZE % BLOCK_SIZE == 0
     if (rawBytes.length < length) {
       pad(length - rawBytes.length);
     }
