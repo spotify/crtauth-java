@@ -33,21 +33,29 @@ public class VerifiableMessageTest extends XdrSerializableTest<VerifiableMessage
 
   @Override
   protected VerifiableMessage getInstance() throws Exception {
-    return getDefaultVerifiableMessage();
+    return getVerifiableMessageChallenge();
   }
 
   @Test
-  public void testDeserializePayload() throws Exception {
-    VerifiableMessage<Challenge> verifiableMessage = getDefaultVerifiableMessage();
+  public void testDeserializePayloadChallenge() throws Exception {
+    VerifiableMessage<Challenge> verifiableMessage = getVerifiableMessageChallenge();
     byte[] data = verifiableMessage.serialize();
     VerifiableMessage<Challenge> deserialized = verifiableMessage.deserialize(data);
-    assertEquals(deserialized.getPayload(), getDefaultVerifiableMessage().getPayload());
+    assertEquals(deserialized.getPayload(), getVerifiableMessageChallenge().getPayload());
+  }
+
+  @Test
+  public void testDeserializePayloadToken() throws Exception {
+    VerifiableMessage<Token> verifiableMessage = getVerifiableMessageToken();
+    byte[] data = verifiableMessage.serialize();
+    VerifiableMessage<Token> deserialized = verifiableMessage.deserialize(data);
+    assertEquals(deserialized.getPayload(), getVerifiableMessageToken().getPayload());
   }
 
   @Test
   public void testVerifyMessage() throws Exception {
     DigestAlgorithm digestAlgorithm = new MessageHashDigestAlgorithm();
-    VerifiableMessage<Challenge> verifiableMessage = getDefaultVerifiableMessage();
+    VerifiableMessage<Challenge> verifiableMessage = getVerifiableMessageChallenge();
     assertTrue(verifiableMessage.verify(digestAlgorithm));
     byte[] data = verifiableMessage.serialize();
     VerifiableMessage<Challenge> deserialized = verifiableMessage.deserialize(data);
@@ -57,7 +65,7 @@ public class VerifiableMessageTest extends XdrSerializableTest<VerifiableMessage
   @Test
   public void testVerifyCorruptMessage() throws Exception {
     DigestAlgorithm digestAlgorithm = new MessageHashDigestAlgorithm();
-    VerifiableMessage<Challenge> verifiableMessage = getDefaultVerifiableMessage();
+    VerifiableMessage<Challenge> verifiableMessage = getVerifiableMessageChallenge();
     assertTrue(verifiableMessage.verify(digestAlgorithm));
     byte[] data = verifiableMessage.serialize();
     // Alter the message but make sure it's still parsable
@@ -67,13 +75,24 @@ public class VerifiableMessageTest extends XdrSerializableTest<VerifiableMessage
     assertFalse(deserialized.verify(digestAlgorithm));
   }
 
-  private VerifiableMessage<Challenge> getDefaultVerifiableMessage() throws Exception {
+  private VerifiableMessage<Challenge> getVerifiableMessageChallenge() throws Exception {
     Challenge challenge = ChallengeTest.getDefaultChallenge();
     byte[] digest = new MessageHashDigestAlgorithm().getDigest(challenge.serialize());
     VerifiableMessage<Challenge> verifiableMessage =
         new VerifiableMessage.Builder<Challenge>(Challenge.class)
             .setDigest(digest)
             .setPayload(challenge)
+            .build();
+    return verifiableMessage;
+  }
+
+  private VerifiableMessage<Token> getVerifiableMessageToken() throws Exception {
+    Token token = TokenTest.getDefaultToken();
+    byte[] digest = new MessageHashDigestAlgorithm().getDigest(token.serialize());
+    VerifiableMessage<Token> verifiableMessage =
+        new VerifiableMessage.Builder<Token>(Token.class)
+            .setDigest(digest)
+            .setPayload(token)
             .build();
     return verifiableMessage;
   }

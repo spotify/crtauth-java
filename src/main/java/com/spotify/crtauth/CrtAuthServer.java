@@ -205,7 +205,7 @@ public class CrtAuthServer {
       throw new RuntimeException(e);
     }
     VerifiableMessage<Challenge> verifiableChallenge =
-        new VerifiableMessage.Builder<Challenge>(Challenge.class)
+        new VerifiableMessage.Builder(Challenge.class)
             .setDigest(digest)
             .setPayload(challenge)
             .build();
@@ -265,7 +265,7 @@ public class CrtAuthServer {
     }
     UnsignedInteger validFrom = timeSupplier.getTime().minus(CLOCK_FUDGE);
     UnsignedInteger validTo = timeSupplier.getTime().plus(tokenLifetimeInS);
-    Token token = new Token.Builder()
+    Token token = Token.newBuilder()
         .setUserName(challenge.getUserName())
         .setValidFrom(validFrom)
         .setValidTo(validTo)
@@ -276,7 +276,7 @@ public class CrtAuthServer {
     } catch (SerializationException e) {
       throw new RuntimeException(e);
     }
-    VerifiableMessage<Token> verifiableToken = new VerifiableMessage.Builder<Token>(Token.class)
+    VerifiableMessage<Token> verifiableToken = new VerifiableMessage.Builder(Token.class)
         .setDigest(digestAlgorithm.getDigest(serializedToken))
         .setPayload(token)
         .build();

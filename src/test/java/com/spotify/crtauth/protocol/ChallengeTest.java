@@ -61,8 +61,6 @@ public class ChallengeTest extends XdrSerializableTest<Challenge> {
     assertArrayEquals(challenge.serialize(), encoding.decode(expected));
   }
 
-
-
   @Override
   protected Challenge getInstance() {
     return getDefaultChallenge();
