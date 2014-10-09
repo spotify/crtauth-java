@@ -21,21 +21,22 @@
 
 package com.spotify.crtauth.utils;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.hash.Hashing;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
 
 import static com.google.common.base.Preconditions.checkPositionIndex;
 
 public class PublicKeys {
-  private static final String MESSAGE_DIGEST_ALGORITHM = "SHA-1";
-  private static final int FINGERPRINT_LENGHT = 6;
-  private static final int INTEGER_SIZE = Integer.SIZE;
-  private static final String PUBLIC_KEY_TYPE = "ssh-rsa";
-  private final static int MAX_BUFFER_SIZE = 512 * 1024;
+  private static final int FINGERPRINT_LENGTH = 6;
+  // The size of a newly generated public part of a 4096 bit key
+  private static final int TYPICAL_KEY_SIZE = 535;
 
   /**
    * Obtain a 6-byte long fingerprint for the given RSA public key.
@@ -46,41 +47,27 @@ public class PublicKeys {
    *    returned.
    */
   public static byte[] generateFingerprint(RSAPublicKey key) {
-    MessageDigest digest = null;
-    try {
-      digest = MessageDigest.getInstance(MESSAGE_DIGEST_ALGORITHM);
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException(e);
-    }
-    // Produce a traditional representation of the key in DER format
-    byte[] derKey = getDerEncoding(key);
-    // Compute a sha1 hash
-    digest.reset();
-    digest.update(derKey);
-    byte[] digestBytes = digest.digest();
-    checkPositionIndex(FINGERPRINT_LENGHT, digestBytes.length);
-    return Arrays.copyOf(digestBytes, FINGERPRINT_LENGHT);
+    byte[] digestBytes = Hashing.sha1().hashBytes(getDerEncoding(key)).asBytes();
+    checkPositionIndex(FINGERPRINT_LENGTH, digestBytes.length);
+    return Arrays.copyOf(digestBytes, FINGERPRINT_LENGTH);
   }
 
   private static byte[] getDerEncoding(RSAPublicKey key) {
-    byte[] type = PUBLIC_KEY_TYPE.getBytes();
-    byte[] exp = key.getPublicExponent().toByteArray();
-    byte[] mod = key.getModulus().toByteArray();
-    byte[] buffer = new byte[MAX_BUFFER_SIZE];
-    ByteBuffer byteBuffer = ByteBuffer.wrap(buffer);
-    byteBuffer.order(ByteOrder.BIG_ENDIAN);
-    writeVariableLengthOpaque(type, byteBuffer);
-    writeVariableLengthOpaque(exp, byteBuffer);
-    writeVariableLengthOpaque(mod, byteBuffer);
-    return Arrays.copyOf(byteBuffer.array(), byteBuffer.position());
+    ByteArrayOutputStream buffer = new ByteArrayOutputStream(TYPICAL_KEY_SIZE);
+    DataOutputStream dataOutput = new DataOutputStream(buffer);
+    writeVariableLengthOpaque("ssh-rsa".getBytes(), dataOutput);
+    writeVariableLengthOpaque(key.getPublicExponent().toByteArray(), dataOutput);
+    writeVariableLengthOpaque(key.getModulus().toByteArray(), dataOutput);
+    return buffer.toByteArray();
   }
 
-  private static void writeVariableLengthOpaque(byte[] opaque, ByteBuffer byteBuffer) {
-    if (byteBuffer.position() + opaque.length + INTEGER_SIZE > byteBuffer.limit()) {
-      throw new RuntimeException("Buffer overflow.");
+  @VisibleForTesting
+  static void writeVariableLengthOpaque(byte[] opaque, DataOutput byteBuffer) {
+    try {
+      byteBuffer.writeInt(opaque.length);
+      byteBuffer.write(opaque);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    int length = opaque.length;
-    byteBuffer.putInt(length);
-    byteBuffer.put(opaque);
   }
 }

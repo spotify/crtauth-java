@@ -38,7 +38,7 @@ public class PublicKeysTest {
       "hsw0cDDPNFigU/UDw2kW9CUlGscrPs+0sj9wim4ZwMC9hmiFS/yfzHOaoTylFkG6ia9W/ test@spotify.net";
 
   @Test
-  public void testFigerprint() throws Exception {
+  public void testFingerprint() throws Exception {
     final KeyFactory keyFactory = KeyFactory.getInstance("RSA");
     final String expectedEncodedFingerprint = "c/XR6bib";
     BaseEncoding encoding = BaseEncoding.base64();
