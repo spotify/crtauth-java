@@ -35,6 +35,14 @@ public class TokenTest extends XdrSerializableTest<Token> {
   private static final int DEFAULT_VALID_FROM = 10;
   private static final int DEFAULT_VALID_TO = 20;
 
+  public static Token getDefaultToken() {
+    return Token.newBuilder()
+        .setUserName("spotify")
+        .setValidFrom(DEFAULT_VALID_FROM)
+        .setValidTo(DEFAULT_VALID_TO)
+        .build();
+  }
+
   @Override
   protected Token getInstance() {
     return getDefaultToken();
@@ -85,11 +93,4 @@ public class TokenTest extends XdrSerializableTest<Token> {
     assertTrue(token.isExpired(timeSupplier));
   }
 
-  private Token getDefaultToken() {
-    return new Token.Builder()
-        .setUserName("spotify")
-        .setValidFrom(DEFAULT_VALID_FROM)
-        .setValidTo(DEFAULT_VALID_TO)
-        .build();
-  }
 }
