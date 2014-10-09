@@ -21,11 +21,10 @@
 
 package com.spotify.crtauth;
 
-import com.google.common.io.BaseEncoding;
+import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.keyprovider.InMemoryKeyProvider;
 import com.spotify.crtauth.protocol.Challenge;
-import com.spotify.crtauth.protocol.Response;
 import com.spotify.crtauth.protocol.VerifiableMessage;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
@@ -39,6 +38,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 
+import static com.spotify.crtauth.ASCIICodec.decode;
 import static org.junit.Assert.assertArrayEquals;
 
 public class CrtAuthServerTest {
@@ -116,11 +116,15 @@ public class CrtAuthServerTest {
         .setSecret(serverSecret)
         .setKeyProvider(keyProvider)
         .build();
-    VerifiableMessage<Challenge> verifiableChallenge = crtAuthServer.createChallenge("noa");
-    Challenge challenge = verifiableChallenge.getPayload();
-    BaseEncoding encoding = BaseEncoding.base64();
-    byte[] expectedFingerprint = encoding.decode("+6Hqb9N5");
-    assertArrayEquals(challenge.getFigerprint(), expectedFingerprint);
+    String challenge = crtAuthServer.createChallenge("noa");
+    byte[] expectedFingerprint = decode("-6Hqb9N5");
+    assertArrayEquals(extractFingerprint(challenge), expectedFingerprint);
+  }
+
+  private byte[] extractFingerprint(String challenge) throws DeserializationException {
+    VerifiableMessage<Challenge> decoder = VerifiableMessage.getDefaultInstance(Challenge.class);
+    VerifiableMessage<Challenge> vChallenge = decoder.deserialize(decode(challenge));
+    return vChallenge.getPayload().getFingerprint();
   }
 
 
@@ -131,8 +135,8 @@ public class CrtAuthServerTest {
         .setSecret("server_secret".getBytes())
         .setKeyProvider(keyProvider)
         .build();
-    VerifiableMessage<Challenge> verifiableChallenge = crtAuthServer.createChallenge("test");
-    Response response = crtAuthClient.createResponse(verifiableChallenge);
+    String verifiableChallenge = crtAuthServer.createChallenge("test");
+    String response = crtAuthClient.createResponse(verifiableChallenge);
     otherOuthServer.createToken(response);
   }
 }

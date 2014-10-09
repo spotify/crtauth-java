@@ -58,9 +58,9 @@ public class AgentSigner implements Signer {
 
   @Override
   public byte[] sign(Challenge challenge) throws SignerException {
-    PublicKey publicKey = null;
+    PublicKey publicKey;
     try {
-      publicKey = getKeyFromFingerprint(challenge.getFigerprint());
+      publicKey = getKeyFromFingerprint(challenge.getFingerprint());
     } catch (Exception exception) {
       throw new SignerException();
     }
