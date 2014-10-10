@@ -22,7 +22,6 @@
 package com.spotify.crtauth.signer;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.spotify.crtauth.exceptions.SerializationException;
 import com.spotify.crtauth.exceptions.SignerException;
 import com.spotify.crtauth.protocol.Challenge;
 import com.spotify.crtauth.utils.PublicKeys;

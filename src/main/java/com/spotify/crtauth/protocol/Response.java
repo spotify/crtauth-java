@@ -21,7 +21,6 @@
 
 package com.spotify.crtauth.protocol;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Arrays;
@@ -35,29 +34,77 @@ import com.spotify.crtauth.xdr.XdrEncoder;
 
 public class Response implements XdrSerializable {
   private static final String MAGIC = "r";
-  private byte[] signature;
-  private VerifiableMessage<Challenge> verifiableChallenge;
+
+  private final byte[] signature;
+  private final VerifiableMessage<Challenge> verifiableChallenge;
 
   public static class Builder {
-    Response response = new Response();
+    private byte[] signature;
+    private VerifiableMessage<Challenge> verifiableChallenge;
 
     public Builder setSignature(byte[] signature) {
-      response.signature = Arrays.copyOf(signature, signature.length);
+      this.signature = Arrays.copyOf(signature, signature.length);
       return this;
     }
 
-    public Builder setVerifiableChallenge(VerifiableMessage<Challenge> verifiableChallenge) {
-      response.verifiableChallenge = verifiableChallenge;
+    public Builder setVerifiableChallenge(
+        VerifiableMessage<Challenge> verifiableChallenge) {
+      this.verifiableChallenge = verifiableChallenge;
       return this;
     }
 
     public Response build() {
-      checkNotNull(response.signature);
-      checkNotNull(response.verifiableChallenge);
-      Response built = response;
-      response = new Response();
-      return built;
+      return new Response(signature, verifiableChallenge);
     }
+  }
+
+  private static final MessageDeserializer<Response> DESERIALIZER = new MessageDeserializer<Response>() {
+    @Override
+    public Response deserialize(byte[] data)
+        throws DeserializationException {
+      final XdrDecoder decoder = Xdr.newDecoder(data);
+
+      final String magic;
+
+      try {
+        magic = decoder.readFixedLengthString(1);
+      } catch (XdrException e) {
+        throw new DeserializationException(e);
+      }
+
+      if (!magic.equals(MAGIC)) {
+        throw new DeserializationException("invalid magic byte");
+      }
+
+      final byte[] signature;
+      final VerifiableMessage<Challenge> verifiableChallenge;
+
+      try {
+        signature = decoder.readVariableLengthOpaque();
+        verifiableChallenge = VerifiableMessage.deserialize(decoder
+            .readVariableLengthOpaque(), Challenge.deserializer());
+      } catch (XdrException e) {
+        throw new DeserializationException(e);
+      }
+
+      return new Response(signature, verifiableChallenge);
+    }
+  };
+
+  public static MessageDeserializer<Response> deserializer() {
+    return DESERIALIZER;
+  }
+
+  public Response(byte[] signature,
+      VerifiableMessage<Challenge> verifiableChallenge) {
+    if (signature == null)
+      throw new IllegalArgumentException("'signature' must be set");
+
+    if (verifiableChallenge == null)
+      throw new IllegalArgumentException("'verifiableChallenge' must be set");
+
+    this.signature = signature;
+    this.verifiableChallenge = verifiableChallenge;
   }
 
   public VerifiableMessage<Challenge> getVerifiableChallenge() {
@@ -70,7 +117,8 @@ public class Response implements XdrSerializable {
 
   @Override
   public byte[] serialize() throws SerializationException {
-    XdrEncoder encoder = Xdr.newEncoder();
+    final XdrEncoder encoder = Xdr.newEncoder();
+
     try {
       encoder.writeFixedLengthString(1, MAGIC);
       encoder.writeVariableLengthOpaque(signature);
@@ -82,33 +130,18 @@ public class Response implements XdrSerializable {
   }
 
   @Override
-  public Response deserialize(byte[] bytes) throws DeserializationException {
-    XdrDecoder decoder = Xdr.newDecoder(bytes);
-    VerifiableMessage<Challenge> verifiableMessageDecoder =
-        VerifiableMessage.getDefaultInstance(Challenge.class);
-    Response response = new Response();
-    try {
-      String magic = decoder.readFixedLengthString(1);
-      checkArgument(magic.equals(MAGIC));
-      response.signature = decoder.readVariableLengthOpaque();
-      byte[] verifiableMessageBytes = decoder.readVariableLengthOpaque();
-      response.verifiableChallenge = verifiableMessageDecoder.deserialize(verifiableMessageBytes);
-      return response;
-    } catch (XdrException e) {
-      throw new DeserializationException(e);
-
-    }
-  }
-
-  @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
 
     Response response = (Response) o;
 
-    if (!Arrays.equals(signature, response.signature)) return false;
-    if (!verifiableChallenge.equals(response.verifiableChallenge)) return false;
+    if (!Arrays.equals(signature, response.signature))
+      return false;
+    if (!verifiableChallenge.equals(response.verifiableChallenge))
+      return false;
 
     return true;
   }

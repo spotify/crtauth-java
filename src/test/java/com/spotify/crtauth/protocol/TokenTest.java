@@ -26,7 +26,7 @@ import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.utils.SettableTimeSupplier;
 import org.junit.Test;
 
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -48,6 +48,11 @@ public class TokenTest extends XdrSerializableTest<Token> {
     return getDefaultToken();
   }
 
+  @Override
+  protected MessageDeserializer<Token> getDeserializer() {
+    return Token.deserializer();
+  }
+
   @Test
   public void testSerializeToken() throws Exception {
     final String expected = "dAAAAFFdiK5RXYnaAAAAA25vYQA=";
@@ -62,7 +67,7 @@ public class TokenTest extends XdrSerializableTest<Token> {
   @Test
   public void testDeserializeToken() throws Exception {
     final String encoded = "dAAAAFFdixdRXYtVAAAABHRlc3Q=";
-    Token token = Token.getDefaultInstance().deserialize(BaseEncoding.base64().decode(encoded));
+    Token token = Token.deserialize(BaseEncoding.base64().decode(encoded));
     assertEquals(token.getUserName(), "test");
     assertEquals(token.getValidFrom(), UnsignedInteger.valueOf(1365084951).intValue());
   }
@@ -92,5 +97,4 @@ public class TokenTest extends XdrSerializableTest<Token> {
     timeSupplier.setTime(DEFAULT_VALID_TO + 1);
     assertTrue(token.isExpired(timeSupplier));
   }
-
 }

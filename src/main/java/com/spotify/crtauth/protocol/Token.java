@@ -21,7 +21,6 @@
 
 package com.spotify.crtauth.protocol;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.primitives.UnsignedInteger;
@@ -36,47 +35,100 @@ import com.spotify.crtauth.xdr.XdrEncoder;
 
 public class Token implements XdrSerializable {
   private static final String MAGIC = "t";
-  private int validFrom;
-  private int validTo;
-  private String userName;
+
+  private final int validFrom;
+  private final int validTo;
+  private final String userName;
 
   public static class Builder {
-    Token token = new Token();
+    private int validFrom;
+    private int validTo;
+    private String userName;
 
     public Builder setValidFrom(int validFrom) {
-      token.validFrom = validFrom;
+      this.validFrom = validFrom;
       return this;
     }
 
     public Builder setValidFrom(UnsignedInteger validFrom) {
-      token.validFrom = validFrom.intValue();
+      this.validFrom = validFrom.intValue();
       return this;
     }
 
     public Builder setValidTo(int validTo) {
-      token.validTo = validTo;
+      this.validTo = validTo;
       return this;
     }
 
     public Builder setValidTo(UnsignedInteger validTo) {
-      token.validTo = validTo.intValue();
+      this.validTo = validTo.intValue();
       return this;
     }
 
     public Builder setUserName(String userName) {
-      token.userName = userName;
+      this.userName = userName;
       return this;
     }
 
     public Token build() {
-      checkNotNull(token.userName);
-      Token built = token;
-      token = new Token();
-      return built;
+      return new Token(validFrom, validTo, userName);
     }
   }
 
-  public Token() {}
+  private static MessageDeserializer<Token> DESERIALIZER = new MessageDeserializer<Token>() {
+    @Override
+    public Token deserialize(byte[] data) throws DeserializationException {
+      final XdrDecoder decoder = Xdr.newDecoder(data);
+
+      final String magic;
+
+      try {
+        magic = decoder.readFixedLengthString(1);
+      } catch (XdrException e) {
+        throw new DeserializationException(e);
+      }
+
+      if (!magic.equals(MAGIC)) {
+        throw new DeserializationException("invalid magic byte");
+      }
+
+      final int validFrom;
+      final int validTo;
+      final String userName;
+
+      try {
+        validFrom = decoder.readInt();
+        validTo = decoder.readInt();
+        userName = decoder.readString();
+      } catch (XdrException e) {
+        throw new DeserializationException(e);
+      }
+
+      return new Token(validFrom, validTo, userName);
+    }
+  };
+
+  public static MessageDeserializer<Token> deserializer() {
+    return DESERIALIZER;
+  }
+
+  public static Token deserialize(byte[] data) throws DeserializationException {
+    return deserializer().deserialize(data);
+  }
+
+  public Token(int validFrom, int validTo, String userName) {
+    if (!(validFrom < validTo))
+      throw new IllegalArgumentException(
+          "validity timestamps are invalid, 'validFrom' "
+              + "must be smaller than 'validTo'");
+
+    if (userName == null || userName.isEmpty())
+      throw new IllegalArgumentException("'userName' must be set and non-empty");
+
+    this.validFrom = validFrom;
+    this.validTo = validTo;
+    this.userName = userName;
+  }
 
   public static Builder newBuilder() {
     return new Builder();
@@ -98,11 +150,6 @@ public class Token implements XdrSerializable {
     return this.userName;
   }
 
-
-  public static Token getDefaultInstance() {
-    return new Token();
-  }
-
   @Override
   public byte[] serialize() throws SerializationException {
     XdrEncoder encoder = Xdr.newEncoder();
@@ -114,22 +161,6 @@ public class Token implements XdrSerializable {
       return encoder.encode();
     } catch (XdrException e) {
       throw new SerializationException(e);
-    }
-  }
-
-  @Override
-  public Token deserialize(byte[] bytes) throws DeserializationException {
-    XdrDecoder decoder = Xdr.newDecoder(bytes);
-    Token token = new Token();
-    try {
-      String magic = decoder.readFixedLengthString(1);
-      checkArgument(magic.equals(MAGIC));
-      token.validFrom = decoder.readInt();
-      token.validTo = decoder.readInt();
-      token.userName = decoder.readString();
-      return token;
-    } catch (XdrException e) {
-      throw new DeserializationException(e);
     }
   }
 
