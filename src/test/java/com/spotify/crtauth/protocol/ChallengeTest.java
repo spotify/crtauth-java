@@ -65,4 +65,9 @@ public class ChallengeTest extends XdrSerializableTest<Challenge> {
   protected Challenge getInstance() {
     return getDefaultChallenge();
   }
+
+  @Override
+  protected MessageDeserializer<Challenge> getDeserializer() {
+    return Challenge.deserializer();
+  }
 }

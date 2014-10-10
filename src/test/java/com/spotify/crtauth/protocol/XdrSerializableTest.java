@@ -28,11 +28,13 @@ import static org.junit.Assert.assertEquals;
 public abstract class XdrSerializableTest<T extends XdrSerializable> {
   protected abstract T getInstance() throws Exception;
 
+  protected abstract MessageDeserializer<T> getDeserializer();
+
   @Test
   public void testSerializationIsIdempotent() throws Exception {
     T expected = getInstance();
     byte[] serialized = expected.serialize();
-    T actual = (T) expected.deserialize(serialized);
+    T actual = getDeserializer().deserialize(serialized);
     assertEquals(actual, expected);
   }
 }

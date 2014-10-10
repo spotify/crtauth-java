@@ -83,10 +83,8 @@ public class CrtAuthClient {
 
   private VerifiableMessage<Challenge> buildVerifiableChallenge(String challenge)
       throws InvalidInputException {
-    VerifiableMessage<Challenge> verifiableMessageDecoder =
-        VerifiableMessage.getDefaultInstance(Challenge.class);
     try {
-      return verifiableMessageDecoder.deserialize(decode(challenge));
+      return VerifiableMessage.deserialize(decode(challenge), Challenge.deserializer());
     } catch (DeserializationException e) {
       throw new InvalidInputException(e);
     }

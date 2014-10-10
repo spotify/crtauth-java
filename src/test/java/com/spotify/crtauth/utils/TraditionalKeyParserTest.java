@@ -22,7 +22,9 @@
 package com.spotify.crtauth.utils;
 
 import com.google.common.io.BaseEncoding;
+
 import org.junit.Test;
+
 import sun.security.rsa.RSAPrivateCrtKeyImpl;
 import sun.security.rsa.RSAPrivateKeyImpl;
 
@@ -35,6 +37,7 @@ import java.security.spec.X509EncodedKeySpec;
 
 import static org.junit.Assert.assertEquals;
 
+@SuppressWarnings("restriction")
 public class TraditionalKeyParserTest {
   private static final String X509_PEM_PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA" +
       "4yj1tuGtBqOxE4jD/4/A7JxvhOmwdg7wrl+YSS2wShP6ATLGd3gfDMkTl5r/4dG9Ds7oBMfpZcSKNBaZ7LicTJRe8a" +

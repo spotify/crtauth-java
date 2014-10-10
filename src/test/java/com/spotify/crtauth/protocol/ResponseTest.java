@@ -35,10 +35,9 @@ public class ResponseTest extends XdrSerializableTest<Response> {
   protected Response getInstance() throws Exception {
     Challenge challenge = ChallengeTest.getDefaultChallenge();
     VerifiableMessage<Challenge> verifiableChallenge =
-        new VerifiableMessage.Builder<Challenge>(Challenge.class)
-            .setPayload(challenge)
-            .setDigest(new MessageHashDigestAlgorithm().getDigest(challenge.serialize()))
-            .build();
+        new VerifiableMessage<Challenge>(
+            new MessageHashDigestAlgorithm().getDigest(challenge.serialize()),
+            challenge);
     byte[] signature = new byte[20];
     Random random = new Random();
     random.setSeed(0);
@@ -47,6 +46,11 @@ public class ResponseTest extends XdrSerializableTest<Response> {
         .setVerifiableChallenge(verifiableChallenge)
         .setSignature(signature)
         .build();
+  }
+
+  @Override
+  protected MessageDeserializer<Response> getDeserializer() {
+    return Response.deserializer();
   }
 
   @Test
@@ -65,9 +69,7 @@ public class ResponseTest extends XdrSerializableTest<Response> {
         "K3Tv5e4ZNI0n6QvQUEb7AAAAYHYAAABPhXGXA0MXh7y0o+sxfNfq1YPXEQAAAERjAAAAf82EQSLbhYlJLdNe4nXK" +
         "wlO02KJRfAWCUXwFmAAAAAbbZaLU+RAAAAAAAAtzZXJ2ZXJfbmFtZQAAAAAEdGVzdA==";
     final BaseEncoding encoding = BaseEncoding.base64();
-    VerifiableMessage<Challenge> verifiableChallenge =
-        VerifiableMessage.getDefaultInstance(Challenge.class)
-            .deserialize(encoding.decode(verifiableChallengeBytes));
+    VerifiableMessage<Challenge> verifiableChallenge = VerifiableMessage.deserialize(encoding.decode(verifiableChallengeBytes), Challenge.deserializer());
     Response response = new Response.Builder()
         .setVerifiableChallenge(verifiableChallenge)
         .setSignature(encoding.decode(signature))

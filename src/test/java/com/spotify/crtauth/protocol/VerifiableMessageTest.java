@@ -23,24 +23,36 @@ package com.spotify.crtauth.protocol;
 
 import com.spotify.crtauth.digest.DigestAlgorithm;
 import com.spotify.crtauth.digest.MessageHashDigestAlgorithm;
+import com.spotify.crtauth.exceptions.DeserializationException;
+
 import org.junit.Test;
 
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
-public class VerifiableMessageTest extends XdrSerializableTest<VerifiableMessage> {
+public class VerifiableMessageTest extends XdrSerializableTest<VerifiableMessage<Challenge>> {
+  @Override
+  protected VerifiableMessage<Challenge> getInstance() throws Exception {
+    return getVerifiableMessageChallenge();
+  }
 
   @Override
-  protected VerifiableMessage getInstance() throws Exception {
-    return getVerifiableMessageChallenge();
+  protected MessageDeserializer<VerifiableMessage<Challenge>> getDeserializer() {
+    return new MessageDeserializer<VerifiableMessage<Challenge>>() {
+      @Override
+      public VerifiableMessage<Challenge> deserialize(byte[] data)
+          throws DeserializationException {
+        return VerifiableMessage.deserialize(data, Challenge.deserializer());
+      }
+    };
   }
 
   @Test
   public void testDeserializePayloadChallenge() throws Exception {
     VerifiableMessage<Challenge> verifiableMessage = getVerifiableMessageChallenge();
     byte[] data = verifiableMessage.serialize();
-    VerifiableMessage<Challenge> deserialized = verifiableMessage.deserialize(data);
+    VerifiableMessage<Challenge> deserialized = VerifiableMessage.deserialize(data, Challenge.deserializer());
     assertEquals(deserialized.getPayload(), getVerifiableMessageChallenge().getPayload());
   }
 
@@ -48,7 +60,7 @@ public class VerifiableMessageTest extends XdrSerializableTest<VerifiableMessage
   public void testDeserializePayloadToken() throws Exception {
     VerifiableMessage<Token> verifiableMessage = getVerifiableMessageToken();
     byte[] data = verifiableMessage.serialize();
-    VerifiableMessage<Token> deserialized = verifiableMessage.deserialize(data);
+    VerifiableMessage<Token> deserialized = VerifiableMessage.deserialize(data, Token.deserializer());
     assertEquals(deserialized.getPayload(), getVerifiableMessageToken().getPayload());
   }
 
@@ -58,7 +70,7 @@ public class VerifiableMessageTest extends XdrSerializableTest<VerifiableMessage
     VerifiableMessage<Challenge> verifiableMessage = getVerifiableMessageChallenge();
     assertTrue(verifiableMessage.verify(digestAlgorithm));
     byte[] data = verifiableMessage.serialize();
-    VerifiableMessage<Challenge> deserialized = verifiableMessage.deserialize(data);
+    VerifiableMessage<Challenge> deserialized = VerifiableMessage.deserialize(data, Challenge.deserializer());
     assertTrue(deserialized.verify(digestAlgorithm));
   }
 
@@ -71,7 +83,7 @@ public class VerifiableMessageTest extends XdrSerializableTest<VerifiableMessage
     // Alter the message but make sure it's still parsable
     data[data.length-5] = 0;
     System.out.println(data);
-    VerifiableMessage<Challenge> deserialized = verifiableMessage.deserialize(data);
+    VerifiableMessage<Challenge> deserialized = VerifiableMessage.deserialize(data, Challenge.deserializer());
     assertFalse(deserialized.verify(digestAlgorithm));
   }
 
@@ -79,10 +91,7 @@ public class VerifiableMessageTest extends XdrSerializableTest<VerifiableMessage
     Challenge challenge = ChallengeTest.getDefaultChallenge();
     byte[] digest = new MessageHashDigestAlgorithm().getDigest(challenge.serialize());
     VerifiableMessage<Challenge> verifiableMessage =
-        new VerifiableMessage.Builder<Challenge>(Challenge.class)
-            .setDigest(digest)
-            .setPayload(challenge)
-            .build();
+        new VerifiableMessage<Challenge>(digest, challenge);
     return verifiableMessage;
   }
 
@@ -90,10 +99,7 @@ public class VerifiableMessageTest extends XdrSerializableTest<VerifiableMessage
     Token token = TokenTest.getDefaultToken();
     byte[] digest = new MessageHashDigestAlgorithm().getDigest(token.serialize());
     VerifiableMessage<Token> verifiableMessage =
-        new VerifiableMessage.Builder<Token>(Token.class)
-            .setDigest(digest)
-            .setPayload(token)
-            .build();
+        new VerifiableMessage<Token>(digest, token);
     return verifiableMessage;
   }
 }

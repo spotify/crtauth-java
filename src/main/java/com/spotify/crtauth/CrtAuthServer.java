@@ -21,6 +21,17 @@
 
 package com.spotify.crtauth;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.spotify.crtauth.ASCIICodec.decode;
+import static com.spotify.crtauth.ASCIICodec.encode;
+
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
+import java.util.Random;
+
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.digest.DigestAlgorithm;
@@ -38,17 +49,6 @@ import com.spotify.crtauth.protocol.VerifiableMessage;
 import com.spotify.crtauth.utils.PublicKeys;
 import com.spotify.crtauth.utils.RealTimeSupplier;
 import com.spotify.crtauth.utils.TimeSupplier;
-
-import java.security.PublicKey;
-import java.security.Signature;
-import java.security.interfaces.RSAPublicKey;
-import java.util.Arrays;
-import java.util.Random;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.spotify.crtauth.ASCIICodec.decode;
-import static com.spotify.crtauth.ASCIICodec.encode;
 
 /**
  * Instances of this class implements the server part of an crtauth authentication interaction.
@@ -80,6 +80,7 @@ public class CrtAuthServer {
   private final KeyProvider keyProvider;
   private final TimeSupplier timeSupplier;
   private final Random random;
+  @SuppressWarnings("unused")
   private final byte[] secret;
   private final DigestAlgorithm digestAlgorithm;
 
@@ -204,11 +205,10 @@ public class CrtAuthServer {
       // we rethrow it as a RuntimeException, since this is an unrecoverable condition anyway.
       throw new RuntimeException(e);
     }
-    VerifiableMessage<Challenge> verifiableChallenge =
-        new VerifiableMessage.Builder(Challenge.class)
-            .setDigest(digest)
-            .setPayload(challenge)
-            .build();
+
+    final VerifiableMessage<Challenge> verifiableChallenge =
+        new VerifiableMessage<Challenge>(digest, challenge);
+
     try {
       return encode(verifiableChallenge.serialize());
     } catch (SerializationException e) {
@@ -224,9 +224,9 @@ public class CrtAuthServer {
    * @throws InvalidInputException
    */
   public String createToken(String response) throws InvalidInputException {
-    Response decodedResponse;
+    final Response decodedResponse;
     try {
-      decodedResponse = new Response().deserialize(decode(response));
+      decodedResponse = Response.deserializer().deserialize(decode(response));
     } catch (DeserializationException e) {
       throw new InvalidInputException(e);
     }
@@ -276,10 +276,7 @@ public class CrtAuthServer {
     } catch (SerializationException e) {
       throw new RuntimeException(e);
     }
-    VerifiableMessage<Token> verifiableToken = new VerifiableMessage.Builder(Token.class)
-        .setDigest(digestAlgorithm.getDigest(serializedToken))
-        .setPayload(token)
-        .build();
+    VerifiableMessage<Token> verifiableToken = new VerifiableMessage<Token>(digestAlgorithm.getDigest(serializedToken), token);
     try {
       return encode(verifiableToken.serialize());
     } catch (SerializationException e) {
@@ -297,11 +294,11 @@ public class CrtAuthServer {
    * @throws TokenExpiredException If the token is outside of its validity period.
    */
   public String validateToken(String token) throws InvalidInputException, TokenExpiredException {
-    VerifiableMessage<Token> tokenDecoder = VerifiableMessage.getDefaultInstance(Token.class);
     byte[] data = decode(token);
-    VerifiableMessage<Token> verifiableToken;
+
+    final VerifiableMessage<Token> verifiableToken;
     try {
-      verifiableToken = tokenDecoder.deserialize(data);
+      verifiableToken = VerifiableMessage.deserialize(data, Token.deserializer());
     } catch (DeserializationException e) {
       throw new InvalidInputException(String.format("failed deserialize token '%s'", token));
     }

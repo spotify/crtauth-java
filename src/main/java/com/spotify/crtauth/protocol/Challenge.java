@@ -21,6 +21,10 @@
 
 package com.spotify.crtauth.protocol;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Arrays;
+
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.SerializationException;
@@ -31,74 +35,143 @@ import com.spotify.crtauth.xdr.Xdr;
 import com.spotify.crtauth.xdr.XdrDecoder;
 import com.spotify.crtauth.xdr.XdrEncoder;
 
-import java.io.IOException;
-import java.util.Arrays;
-
-import static com.google.common.base.Preconditions.checkArgument;
-
 public class Challenge implements XdrSerializable {
   public static final int UNIQUE_DATA_LENGTH = 20;
   private static final int FINGERPRINT_LENGTH = 6;
   private static final String MAGIC = "c";
-  private byte[] uniqueData;
-  private int validFromTimestamp;
-  private int validToTimestamp;
-  private byte[] fingerprint;
-  private String serverName;
-  private String userName;
+
+  private final byte[] uniqueData;
+  private final int validFromTimestamp;
+  private final int validToTimestamp;
+  private final byte[] fingerprint;
+  private final String serverName;
+  private final String userName;
 
   public static class Builder {
-    private Challenge challenge = new Challenge();
+    private byte[] uniqueData;
+    private int validFromTimestamp;
+    private int validToTimestamp;
+    private byte[] fingerprint;
+    private String serverName;
+    private String userName;
 
     public Builder setUniqueData(byte[] uniqueData) {
       checkArgument(uniqueData.length == UNIQUE_DATA_LENGTH);
-      challenge.uniqueData = Arrays.copyOf(uniqueData, uniqueData.length);
+      this.uniqueData = Arrays.copyOf(uniqueData, uniqueData.length);
       return this;
     }
 
     public Builder setValidFromTimestamp(UnsignedInteger timestamp) {
-      challenge.validFromTimestamp = timestamp.intValue();
+      this.validFromTimestamp = timestamp.intValue();
       return this;
     }
 
     public Builder setValidFromTimestamp(int timestamp) {
-      challenge.validFromTimestamp = timestamp;
+      this.validFromTimestamp = timestamp;
       return this;
     }
 
     public Builder setValidToTimestamp(UnsignedInteger timestamp) {
-      challenge.validToTimestamp = timestamp.intValue();
+      this.validToTimestamp = timestamp.intValue();
       return this;
     }
 
     public Builder setValidToTimestamp(int timestamp) {
-      challenge.validToTimestamp = timestamp;
+      this.validToTimestamp = timestamp;
       return this;
     }
 
     public Builder setFingerprint(byte[] fingerprint) {
-      challenge.fingerprint = Arrays.copyOf(fingerprint, FINGERPRINT_LENGTH);
+      this.fingerprint = Arrays.copyOf(fingerprint, FINGERPRINT_LENGTH);
       return this;
     }
 
     public Builder setServerName(String serverName) {
-      challenge.serverName = serverName;
+      this.serverName = serverName;
       return this;
     }
 
     public Builder setUserName(String userName) {
-      challenge.userName = userName;
+      this.userName = userName;
       return this;
     }
 
     public Challenge build() {
-      Challenge built = challenge;
-      challenge = new Challenge();
-      return built;
+      return new Challenge(uniqueData, validFromTimestamp, validToTimestamp,
+          fingerprint, serverName, userName);
     }
   }
 
-  public Challenge() {}
+  private static final MessageDeserializer<Challenge> DESERIALIZER = new MessageDeserializer<Challenge>() {
+    @Override
+    public Challenge deserialize(byte[] data) throws DeserializationException {
+      final XdrDecoder decoder = Xdr.newDecoder(data);
+      final String magic;
+
+      try {
+        magic = decoder.readFixedLengthString(1);
+      } catch (final XdrException e) {
+        throw new DeserializationException(e);
+      }
+
+      if (!magic.equals(MAGIC)) {
+        throw new DeserializationException("invalid magic byte");
+      }
+
+      final byte[] uniqueData;
+      final int validFromTimestamp;
+      final int validToTimestamp;
+      final byte[] fingerprint;
+      final String serverName;
+      final String userName;
+
+      try {
+        uniqueData = decoder.readFixedLengthOpaque(UNIQUE_DATA_LENGTH);
+        validFromTimestamp = decoder.readInt();
+        validToTimestamp = decoder.readInt();
+        fingerprint = decoder.readVariableLengthOpaque();
+        serverName = decoder.readString();
+        userName = decoder.readString();
+      } catch (final XdrException e) {
+        throw new DeserializationException(e);
+      }
+
+      return new Challenge(uniqueData, validFromTimestamp, validToTimestamp,
+          fingerprint, serverName, userName);
+    }
+  };
+
+  public static MessageDeserializer<Challenge> deserializer() {
+    return DESERIALIZER;
+  }
+
+  public Challenge(byte[] uniqueData, int validFromTimestamp,
+      int validToTimestamp, byte[] fingerprint, String serverName,
+      String userName) {
+    if (uniqueData == null)
+      throw new IllegalArgumentException("'uniqueData' must be set");
+
+    if (fingerprint == null)
+      throw new IllegalArgumentException("'fingerprint' must be set");
+
+    if (!(validFromTimestamp < validToTimestamp))
+      throw new IllegalArgumentException(
+          "validity timestamps are invalid, 'validFromTimestamp' "
+              + "must be smaller than 'validToTimestamp'");
+
+    if (serverName == null || serverName.isEmpty())
+      throw new IllegalArgumentException("'serverName' must be set and non-empty");
+
+    if (userName == null || userName.isEmpty())
+      throw new IllegalArgumentException("'userName' must be set and non-empty");
+
+    this.uniqueData = uniqueData;
+    this.validFromTimestamp = validFromTimestamp;
+    this.validToTimestamp = validToTimestamp;
+    this.fingerprint = fingerprint;
+    this.serverName = serverName;
+    this.userName = userName;
+  }
 
   public static Builder newBuilder() {
     return new Builder();
@@ -129,13 +202,14 @@ public class Challenge implements XdrSerializable {
   }
 
   public boolean isExpired(TimeSupplier timeSupplier) {
-    return TimeIntervals.isExpired(validFromTimestamp, validToTimestamp, timeSupplier);
+    return TimeIntervals.isExpired(validFromTimestamp, validToTimestamp,
+        timeSupplier);
   }
-
 
   @Override
   public byte[] serialize() throws SerializationException {
-    XdrEncoder encoder = Xdr.newEncoder();
+    final XdrEncoder encoder = Xdr.newEncoder();
+
     try {
       encoder.writeFixedLengthString(1, MAGIC);
       encoder.writeFixedLengthOpaque(UNIQUE_DATA_LENGTH, uniqueData);
@@ -144,31 +218,11 @@ public class Challenge implements XdrSerializable {
       encoder.writeVariableLengthOpaque(fingerprint);
       encoder.writeString(serverName);
       encoder.writeString(userName);
+
       return encoder.encode();
     } catch (XdrException e) {
       throw new SerializationException(e);
     }
-  }
-
-  @Override
-  public Challenge deserialize(byte[] bytes) throws DeserializationException {
-    XdrDecoder decoder = Xdr.newDecoder(bytes);
-    Challenge challenge = new Challenge();
-    try {
-      String magic = decoder.readFixedLengthString(1);
-      if (!magic.equals(MAGIC)) {
-        throw new DeserializationException("invalid magic byte");
-      }
-      challenge.uniqueData = decoder.readFixedLengthOpaque(UNIQUE_DATA_LENGTH);
-      challenge.validFromTimestamp = decoder.readInt();
-      challenge.validToTimestamp = decoder.readInt();
-      challenge.fingerprint = decoder.readVariableLengthOpaque();
-      challenge.serverName = decoder.readString();
-      challenge.userName = decoder.readString();
-    } catch (final XdrException e) {
-      throw new DeserializationException(e);
-    }
-    return challenge;
   }
 
   @Override
@@ -178,12 +232,18 @@ public class Challenge implements XdrSerializable {
 
     Challenge challenge = (Challenge) o;
 
-    if (validFromTimestamp != challenge.validFromTimestamp) return false;
-    if (validToTimestamp != challenge.validToTimestamp) return false;
-    if (!Arrays.equals(fingerprint, challenge.fingerprint)) return false;
-    if (!serverName.equals(challenge.serverName)) return false;
-    if (!Arrays.equals(uniqueData, challenge.uniqueData)) return false;
-    if (!userName.equals(challenge.userName)) return false;
+    if (!Arrays.equals(uniqueData, challenge.uniqueData))
+      return false;
+    if (validFromTimestamp != challenge.validFromTimestamp)
+      return false;
+    if (validToTimestamp != challenge.validToTimestamp)
+      return false;
+    if (!Arrays.equals(fingerprint, challenge.fingerprint))
+      return false;
+    if (!serverName.equals(challenge.serverName))
+      return false;
+    if (!userName.equals(challenge.userName))
+      return false;
 
     return true;
   }
@@ -198,5 +258,4 @@ public class Challenge implements XdrSerializable {
     result = 31 * result + userName.hashCode();
     return result;
   }
-
 }
