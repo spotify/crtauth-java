@@ -32,5 +32,6 @@ public interface DigestAlgorithm {
    * @param data The input data, as a binary array.
    * @return The digest.
    */
+  public byte[] getDigest(byte[] data, int offset, int length);
   public byte[] getDigest(byte[] data);
 }

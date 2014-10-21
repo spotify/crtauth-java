@@ -28,20 +28,26 @@ import javax.crypto.spec.SecretKeySpec;
  * A DigestAlgorithm implementing HMAC using SHA1 as digest algorithm as specified by RFC2104.
  */
 public class VerifiableDigestAlgorithm implements DigestAlgorithm {
-  private static final String MAC_ALGORITHM = "HmacSHA1";
+  private static final String MAC_ALGORITHM = "HmacSHA256";
   private final SecretKeySpec secret;
 
   public VerifiableDigestAlgorithm(byte[] secret) {
     this.secret = new SecretKeySpec(secret, MAC_ALGORITHM);
   }
 
-  public byte[] getDigest(byte[] data) {
+  public byte[] getDigest(byte[] data, int offset, int length) {
     try {
       Mac mac = Mac.getInstance(MAC_ALGORITHM);
       mac.init(secret);
-      return mac.doFinal(data);
+      mac.update(data, offset, length);
+      return mac.doFinal();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  public byte[] getDigest(byte[] data) {
+    return getDigest(data, 0, data.length);
   }
 }

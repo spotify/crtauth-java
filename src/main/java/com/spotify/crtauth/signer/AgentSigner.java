@@ -56,10 +56,10 @@ public class AgentSigner implements Signer {
   }
 
   @Override
-  public byte[] sign(Challenge challenge) throws SignerException {
+  public byte[] sign(byte[] data, byte[] fingerprint) throws SignerException {
     PublicKey publicKey;
     try {
-      publicKey = getKeyFromFingerprint(challenge.getFingerprint());
+      publicKey = getKeyFromFingerprint(fingerprint);
     } catch (Exception exception) {
       throw new SignerException();
     }
@@ -68,7 +68,7 @@ public class AgentSigner implements Signer {
     }
     byte[] signed;
     try {
-      signed = sshAgent.sign(publicKey, challenge.serialize());
+      signed = sshAgent.sign(publicKey, data);
     } catch (Exception e) {
       throw new SignerException();
     }

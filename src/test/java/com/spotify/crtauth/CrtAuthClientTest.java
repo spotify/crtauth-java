@@ -29,9 +29,12 @@ import com.spotify.crtauth.utils.TraditionalKeyParser;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.security.InvalidKeyException;
 import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 
@@ -70,24 +73,46 @@ public class CrtAuthClientTest {
       "7siqmOTZDKzieik7KVzaJ/U02Q186smezKIuAOYtT8VCf9UksJ4=\n" +
       "-----END RSA PRIVATE KEY-----";
   private CrtAuthServer crtAuthServer;
-  private InMemoryKeyProvider keyProvider;
   private Signer signer;
+
+  private static KeyFactory keyFactory;
+
+  static {
+    try {
+      keyFactory = KeyFactory.getInstance("RSA");
+    } catch (NoSuchAlgorithmException e) {
+      throw new Error("RSA support not available", e);
+    }
+  }
+
+  public static PrivateKey getPrivateKey() {
+    try {
+      RSAPrivateKeySpec privateKeySpec = TraditionalKeyParser.parsePemPrivateKey(PRIVATE_KEY);
+      return keyFactory.generatePrivate(privateKeySpec);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static RSAPublicKey getPublicKey() {
+    try {
+      RSAPublicKeySpec publicKeySpec = TraditionalKeyParser.parsePemPublicKey(PUBLIC_KEY);
+      return  (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @Before
   public void setup() throws Exception {
-    keyProvider = new InMemoryKeyProvider();
-    RSAPublicKeySpec publicKeySpec = TraditionalKeyParser.parsePemPublicKey(PUBLIC_KEY);
-    KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-    RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
-    keyProvider.putKey("test", publicKey);
+    InMemoryKeyProvider keyProvider = new InMemoryKeyProvider();
+    keyProvider.putKey("test", getPublicKey());
     crtAuthServer = new CrtAuthServer.Builder()
         .setServerName(SERVER_NAME)
         .setSecret("server_secret".getBytes())
         .setKeyProvider(keyProvider)
         .build();
-    RSAPrivateKeySpec privateKeySpec = TraditionalKeyParser.parsePemPrivateKey(PRIVATE_KEY);
-    PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
-    signer = new SingleKeySigner(privateKey);
+    signer = new SingleKeySigner(getPrivateKey());
   }
 
   @Test

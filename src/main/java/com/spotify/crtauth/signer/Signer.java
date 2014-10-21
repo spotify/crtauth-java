@@ -30,11 +30,15 @@ import com.spotify.crtauth.protocol.Challenge;
  */
 public interface Signer {
   /**
-   * Sign a challange using an available private key, so that the client can prove its identity.
-   * @param challenge A challenge, as produced by a CrtAuth server.
+   * Sign some binary data using the private key corresponding to the public key with the
+   * provided fingerprint.
+   *
+   *
+   * @param data Some data to sign, typically a serialized challenge
    * @return A signature, as a byte array.
    * @throws SignerException If the signer can't produce a valid signature (for example if the
    *    challenge can't be serialized).
    */
-  public byte[] sign(Challenge challenge) throws SignerException;
+  // TODO: create properly typed fingerprint
+  public byte[] sign(byte[] data, byte[] fingerprint) throws SignerException;
 }

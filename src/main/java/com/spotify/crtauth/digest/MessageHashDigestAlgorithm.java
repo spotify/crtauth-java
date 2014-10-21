@@ -29,14 +29,19 @@ public class MessageHashDigestAlgorithm implements DigestAlgorithm {
   private static final String DIGEST_ALGORITHM = "SHA-1";
 
   @Override
-  public byte[] getDigest(byte[] data) {
+  public byte[] getDigest(byte[] data, int offset, int length) {
     try{
       MessageDigest digest = MessageDigest.getInstance(DIGEST_ALGORITHM);
       digest.reset();
-      digest.update(data);
+      digest.update(data, offset, length);
       return Arrays.copyOf(digest.digest(), DIGEST_LENGTH);
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  public byte[] getDigest(byte[] data) {
+    return getDigest(data, 0, data.length);
   }
 }

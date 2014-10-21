@@ -27,7 +27,6 @@ import com.spotify.crtauth.exceptions.SerializationException;
 import com.spotify.crtauth.exceptions.SignerException;
 import com.spotify.crtauth.protocol.Challenge;
 import com.spotify.crtauth.protocol.Response;
-import com.spotify.crtauth.protocol.VerifiableMessage;
 import com.spotify.crtauth.signer.Signer;
 
 import static com.spotify.crtauth.ASCIICodec.decode;
@@ -60,32 +59,25 @@ public class CrtAuthClient {
    *
    * @param challenge A challenge String obtained from a server.
    * @return The response String to be returned to the server.
-   * @throws InvalidInputException if there is something wrong with the challenge.
-   * @throws SignerException If a valid signature for the input challenge cannot be produced.
+   * @throws com.spotify.crtauth.exceptions.InvalidInputException if there is something wrong with the challenge.
+   * @throws com.spotify.crtauth.exceptions.SignerException If a valid signature for the input challenge cannot be produced.
    */
   public String createResponse(String challenge)
       throws InvalidInputException, SignerException {
-    VerifiableMessage<Challenge> vmc = buildVerifiableChallenge(challenge);
-    Challenge payload = vmc.getPayload();
-    if (!payload.getServerName().equals(serverName)) {
-      throw new InvalidInputException("Invalid serverName in challenge. Possible MITM attack.");
-    }
-    byte[] signature = signer.sign(payload);
+    byte[] decodedChallenge = decode(challenge);
+    Challenge deserializedChallenge;
     try {
-      return encode(new Response.Builder()
-          .setSignature(signature)
-          .setVerifiableChallenge(vmc)
-          .build().serialize());
-    } catch (SerializationException e) {
+      deserializedChallenge = Challenge.deserialize(decodedChallenge);
+    } catch (DeserializationException e) {
       throw new InvalidInputException(e);
     }
-  }
-
-  private VerifiableMessage<Challenge> buildVerifiableChallenge(String challenge)
-      throws InvalidInputException {
+    if (!deserializedChallenge.getServerName().equals(serverName)) {
+      throw new InvalidInputException("Invalid serverName in challenge. Possible MITM attack.");
+    }
+    byte[] signature = signer.sign(decodedChallenge, deserializedChallenge.getFingerprint());
     try {
-      return VerifiableMessage.deserialize(decode(challenge), Challenge.deserializer());
-    } catch (DeserializationException e) {
+      return encode(new Response(decodedChallenge, signature).serialize());
+    } catch (SerializationException e) {
       throw new InvalidInputException(e);
     }
   }

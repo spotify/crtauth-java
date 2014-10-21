@@ -21,17 +21,6 @@
 
 package com.spotify.crtauth;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.spotify.crtauth.ASCIICodec.decode;
-import static com.spotify.crtauth.ASCIICodec.encode;
-
-import java.security.PublicKey;
-import java.security.Signature;
-import java.security.interfaces.RSAPublicKey;
-import java.util.Arrays;
-import java.util.Random;
-
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.digest.DigestAlgorithm;
@@ -45,10 +34,20 @@ import com.spotify.crtauth.keyprovider.KeyProvider;
 import com.spotify.crtauth.protocol.Challenge;
 import com.spotify.crtauth.protocol.Response;
 import com.spotify.crtauth.protocol.Token;
-import com.spotify.crtauth.protocol.VerifiableMessage;
 import com.spotify.crtauth.utils.PublicKeys;
 import com.spotify.crtauth.utils.RealTimeSupplier;
 import com.spotify.crtauth.utils.TimeSupplier;
+
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
+import java.util.Random;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.spotify.crtauth.ASCIICodec.decode;
+import static com.spotify.crtauth.ASCIICodec.encode;
 
 /**
  * Instances of this class implements the server part of an crtauth authentication interaction.
@@ -181,6 +180,7 @@ public class CrtAuthServer {
    *
    * @param userName The username of the user to be authenticated, in the format required by
    *    KeyProvider instances
+   *
    * @return A challenge wrapped in a verifiable message, to be processed by the client.
    * @throws KeyNotFoundException when the public key for the requesting user is not available.
    */
@@ -197,22 +197,10 @@ public class CrtAuthServer {
         .setServerName(serverName)
         .setUserName(userName)
         .build();
-    byte[] digest;
     try {
-      digest = digestAlgorithm.getDigest(challenge.serialize());
+      return encode(challenge.serialize(secret));
     } catch (SerializationException e) {
-      // This should never happen. If a SerializationException is thrown,
-      // we rethrow it as a RuntimeException, since this is an unrecoverable condition anyway.
       throw new RuntimeException(e);
-    }
-
-    final VerifiableMessage<Challenge> verifiableChallenge =
-        new VerifiableMessage<Challenge>(digest, challenge);
-
-    try {
-      return encode(verifiableChallenge.serialize());
-    } catch (SerializationException e) {
-      throw new Error(e);
     }
   }
 
@@ -225,16 +213,14 @@ public class CrtAuthServer {
    */
   public String createToken(String response) throws InvalidInputException {
     final Response decodedResponse;
+    final Challenge challenge;
     try {
-      decodedResponse = Response.deserializer().deserialize(decode(response));
+      decodedResponse = Response.deserialize(decode(response));
+      challenge = Challenge.deserializeAuthenticated(decodedResponse.getPayload(), secret);
     } catch (DeserializationException e) {
       throw new InvalidInputException(e);
     }
-    if(!decodedResponse.getVerifiableChallenge().verify(digestAlgorithm)) {
-      throw new InvalidInputException(
-          "Challenge hmac verification failed, not matching our secret");
-    }
-    Challenge challenge = decodedResponse.getVerifiableChallenge().getPayload();
+
     if (!challenge.getServerName().equals(serverName)) {
       throw new InvalidInputException("Got challenge with the wrong server_name encoded.");
     }
@@ -251,7 +237,7 @@ public class CrtAuthServer {
     try {
       Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
       signature.initVerify(publicKey);
-      signature.update(decodedResponse.getVerifiableChallenge().getPayload().serialize());
+      signature.update(decodedResponse.getPayload());
       signatureVerified = signature.verify(decodedResponse.getSignature());
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -265,22 +251,11 @@ public class CrtAuthServer {
     }
     UnsignedInteger validFrom = timeSupplier.getTime().minus(CLOCK_FUDGE);
     UnsignedInteger validTo = timeSupplier.getTime().plus(tokenLifetimeInS);
-    Token token = Token.newBuilder()
-        .setUserName(challenge.getUserName())
-        .setValidFrom(validFrom)
-        .setValidTo(validTo)
-        .build();
-    byte[] serializedToken = null;
+    Token token = new Token(validFrom.intValue(), validTo.intValue(), challenge.getUserName());
     try {
-      serializedToken = token.serialize();
+      return encode(token.serialize(secret));
     } catch (SerializationException e) {
       throw new RuntimeException(e);
-    }
-    VerifiableMessage<Token> verifiableToken = new VerifiableMessage<Token>(digestAlgorithm.getDigest(serializedToken), token);
-    try {
-      return encode(verifiableToken.serialize());
-    } catch (SerializationException e) {
-      throw new Error(e);
     }
   }
 
@@ -294,22 +269,13 @@ public class CrtAuthServer {
    * @throws TokenExpiredException If the token is outside of its validity period.
    */
   public String validateToken(String token) throws InvalidInputException, TokenExpiredException {
-    byte[] data = decode(token);
-
-    final VerifiableMessage<Token> verifiableToken;
+    final Token deserializedToken;
     try {
-      verifiableToken = VerifiableMessage.deserialize(data, Token.deserializer());
+      deserializedToken = Token.deserializeAuthenticated(decode(token), secret);
     } catch (DeserializationException e) {
       throw new InvalidInputException(String.format("failed deserialize token '%s'", token));
     }
-
-    if (!verifiableToken.verify(digestAlgorithm)) {
-      throw new InvalidInputException("Token hmac verification failed");
-    }
-    Token payload = verifiableToken.getPayload();
-    if (payload.isExpired(timeSupplier)) {
-      throw new TokenExpiredException("The token is out if its validity period.");
-    }
-    return payload.getUserName();
+    deserializedToken.isExpired(timeSupplier);
+    return deserializedToken.getUserName();
   }
 }

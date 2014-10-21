@@ -21,117 +21,30 @@
 
 package com.spotify.crtauth.protocol;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import com.google.common.primitives.UnsignedInteger;
+import com.google.common.base.Preconditions;
+import com.spotify.crtauth.digest.VerifiableDigestAlgorithm;
 import com.spotify.crtauth.exceptions.DeserializationException;
+import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.SerializationException;
-import com.spotify.crtauth.exceptions.XdrException;
 import com.spotify.crtauth.utils.TimeIntervals;
 import com.spotify.crtauth.utils.TimeSupplier;
-import com.spotify.crtauth.xdr.Xdr;
-import com.spotify.crtauth.xdr.XdrDecoder;
-import com.spotify.crtauth.xdr.XdrEncoder;
 
-public class Token implements XdrSerializable {
-  private static final String MAGIC = "t";
+import java.util.Arrays;
+
+public class Token {
+  private static final byte MAGIC = 't';
 
   private final int validFrom;
   private final int validTo;
   private final String userName;
 
-  public static class Builder {
-    private int validFrom;
-    private int validTo;
-    private String userName;
-
-    public Builder setValidFrom(int validFrom) {
-      this.validFrom = validFrom;
-      return this;
-    }
-
-    public Builder setValidFrom(UnsignedInteger validFrom) {
-      this.validFrom = validFrom.intValue();
-      return this;
-    }
-
-    public Builder setValidTo(int validTo) {
-      this.validTo = validTo;
-      return this;
-    }
-
-    public Builder setValidTo(UnsignedInteger validTo) {
-      this.validTo = validTo.intValue();
-      return this;
-    }
-
-    public Builder setUserName(String userName) {
-      this.userName = userName;
-      return this;
-    }
-
-    public Token build() {
-      return new Token(validFrom, validTo, userName);
-    }
-  }
-
-  private static MessageDeserializer<Token> DESERIALIZER = new MessageDeserializer<Token>() {
-    @Override
-    public Token deserialize(byte[] data) throws DeserializationException {
-      final XdrDecoder decoder = Xdr.newDecoder(data);
-
-      final String magic;
-
-      try {
-        magic = decoder.readFixedLengthString(1);
-      } catch (XdrException e) {
-        throw new DeserializationException(e);
-      }
-
-      if (!magic.equals(MAGIC)) {
-        throw new DeserializationException("invalid magic byte");
-      }
-
-      final int validFrom;
-      final int validTo;
-      final String userName;
-
-      try {
-        validFrom = decoder.readInt();
-        validTo = decoder.readInt();
-        userName = decoder.readString();
-      } catch (XdrException e) {
-        throw new DeserializationException(e);
-      }
-
-      return new Token(validFrom, validTo, userName);
-    }
-  };
-
-  public static MessageDeserializer<Token> deserializer() {
-    return DESERIALIZER;
-  }
-
-  public static Token deserialize(byte[] data) throws DeserializationException {
-    return deserializer().deserialize(data);
-  }
-
   public Token(int validFrom, int validTo, String userName) {
-    if (!(validFrom < validTo))
-      throw new IllegalArgumentException(
-          "validity timestamps are invalid, 'validFrom' "
-              + "must be smaller than 'validTo'");
-
-    if (userName == null || userName.isEmpty())
-      throw new IllegalArgumentException("'userName' must be set and non-empty");
-
+    Preconditions.checkArgument(validFrom < validTo, "negative lifespan of Token");
+    Preconditions.checkNotNull(userName);
+    Preconditions.checkArgument(!userName.isEmpty(), "Field 'userName' can not be empty");
     this.validFrom = validFrom;
     this.validTo = validTo;
     this.userName = userName;
-  }
-
-  public static Builder newBuilder() {
-    return new Builder();
   }
 
   public boolean isExpired(TimeSupplier timeSupplier) {
@@ -150,18 +63,42 @@ public class Token implements XdrSerializable {
     return this.userName;
   }
 
-  @Override
-  public byte[] serialize() throws SerializationException {
-    XdrEncoder encoder = Xdr.newEncoder();
-    try {
-      encoder.writeFixedLengthString(1, MAGIC);
-      encoder.writeInt(validFrom);
-      encoder.writeInt(validTo);
-      encoder.writeString(userName);
-      return encoder.encode();
-    } catch (XdrException e) {
-      throw new SerializationException(e);
+  public static Token deserialize(byte[] data) throws DeserializationException {
+    return doDeserialize(new MiniMessagePack.Unpacker(data));
+  }
+
+  public static Token deserializeAuthenticated(byte[] data, byte[] hmac_secret)
+      throws DeserializationException, InvalidInputException {
+    MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
+    Token c = doDeserialize(unpacker);
+    VerifiableDigestAlgorithm verifiableDigest = new VerifiableDigestAlgorithm(hmac_secret);
+    byte[] digest = verifiableDigest.getDigest(data, 0, unpacker.getBytesRead());
+    if (!Arrays.equals(digest, unpacker.unpackBin())) {
+      throw new InvalidInputException("HMAC validation failed");
     }
+    return c;
+  }
+
+  private static Token doDeserialize(MiniMessagePack.Unpacker unpacker) throws DeserializationException {
+    MessageParserHelper.parseVersionMagic(MAGIC, unpacker);
+    return new Token(
+        unpacker.unpackInt(),   // validFrom
+        unpacker.unpackInt(),   // validTo
+        unpacker.unpackString() // userName
+    );
+  }
+
+  public byte[] serialize(byte[] hmac_secret) throws SerializationException {
+    MiniMessagePack.Packer packer = new MiniMessagePack.Packer();
+    packer.pack((byte) 0x01);
+    packer.pack(MAGIC);
+    packer.pack(validFrom);
+    packer.pack(validTo);
+    packer.pack(userName);
+    byte[] bytes = packer.getBytes();
+    byte[] mac = new VerifiableDigestAlgorithm(hmac_secret).getDigest(bytes, 0, bytes.length);
+    packer.pack(mac);
+    return packer.getBytes();
   }
 
   @Override
@@ -173,9 +110,8 @@ public class Token implements XdrSerializable {
 
     if (validFrom != token.validFrom) return false;
     if (validTo != token.validTo) return false;
-    if (!userName.equals(token.userName)) return false;
+    return userName.equals(token.userName);
 
-    return true;
   }
 
   @Override

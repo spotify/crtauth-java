@@ -22,7 +22,6 @@
 package com.spotify.crtauth.signer;
 
 import com.spotify.crtauth.exceptions.SignerException;
-import com.spotify.crtauth.protocol.Challenge;
 
 import java.security.PrivateKey;
 import java.security.Signature;
@@ -36,11 +35,11 @@ public class SingleKeySigner implements Signer {
   }
 
   @Override
-  public byte[] sign(Challenge challenge) throws SignerException {
+  public byte[] sign(byte[] data, byte[] fingerprint) throws SignerException {
     try {
       Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
       signature.initSign(privateKey);
-      signature.update(challenge.serialize());
+      signature.update(data);
       return signature.sign();
     } catch (Exception e) {
       throw new SignerException();
