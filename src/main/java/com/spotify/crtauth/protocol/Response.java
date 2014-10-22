@@ -22,27 +22,12 @@
 package com.spotify.crtauth.protocol;
 
 import com.google.common.base.Preconditions;
-import com.spotify.crtauth.exceptions.DeserializationException;
-import com.spotify.crtauth.exceptions.InvalidInputException;
-import com.spotify.crtauth.exceptions.SerializationException;
 
 import java.util.Arrays;
 
 public class Response {
-  private static final byte MAGIC = 'r';
-
   private final byte[] payload;
   private final byte[] signature;
-
-  public static Response deserialize(byte[] data)
-      throws DeserializationException, InvalidInputException {
-    MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
-    MessageParserHelper.parseVersionMagic(MAGIC, unpacker);
-    return new Response(
-        unpacker.unpackBin(), // challenge
-        unpacker.unpackBin()  // signature
-    );
-  }
 
   public Response(byte[] payload, byte[] signature) {
     Preconditions.checkNotNull(payload);
@@ -59,14 +44,6 @@ public class Response {
     return Arrays.copyOf(signature, signature.length);
   }
 
-  public byte[] serialize() throws SerializationException {
-    MiniMessagePack.Packer packer = new MiniMessagePack.Packer();
-    packer.pack((byte) 0x01);
-    packer.pack(MAGIC);
-    packer.pack(payload);
-    packer.pack(signature);
-    return packer.getBytes();
-  }
 
   @Override
   public boolean equals(Object o) {

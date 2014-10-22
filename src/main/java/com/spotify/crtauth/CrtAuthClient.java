@@ -26,6 +26,7 @@ import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.SerializationException;
 import com.spotify.crtauth.exceptions.SignerException;
 import com.spotify.crtauth.protocol.Challenge;
+import com.spotify.crtauth.protocol.CrtAuthCodec;
 import com.spotify.crtauth.protocol.Response;
 import com.spotify.crtauth.signer.Signer;
 
@@ -67,7 +68,7 @@ public class CrtAuthClient {
     byte[] decodedChallenge = decode(challenge);
     Challenge deserializedChallenge;
     try {
-      deserializedChallenge = Challenge.deserialize(decodedChallenge);
+      deserializedChallenge = CrtAuthCodec.deserializeChallenge(decodedChallenge);
     } catch (DeserializationException e) {
       throw new InvalidInputException(e);
     }
@@ -76,7 +77,7 @@ public class CrtAuthClient {
     }
     byte[] signature = signer.sign(decodedChallenge, deserializedChallenge.getFingerprint());
     try {
-      return encode(new Response(decodedChallenge, signature).serialize());
+      return encode(CrtAuthCodec.serialize(new Response(decodedChallenge, signature)));
     } catch (SerializationException e) {
       throw new InvalidInputException(e);
     }

@@ -70,7 +70,7 @@ class MiniMessagePack {
           dataOutput.writeInt(integer);
         }
       } catch (IOException e) {
-        throw new Error("Filed to write to buffer. Should not happen", e);
+        throw new RuntimeException("Filed to write to buffer. Should not happen", e);
       }
     }
 
@@ -94,7 +94,7 @@ class MiniMessagePack {
         }
         dataOutput.write(data);
       } catch (IOException e) {
-        throw new Error("Filed to write to buffer. Should not happen", e);
+        throw new RuntimeException("Filed to write to buffer. Should not happen", e);
       }
     }
 

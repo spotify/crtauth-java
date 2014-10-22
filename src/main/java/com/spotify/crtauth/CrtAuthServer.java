@@ -32,6 +32,7 @@ import com.spotify.crtauth.exceptions.SerializationException;
 import com.spotify.crtauth.exceptions.TokenExpiredException;
 import com.spotify.crtauth.keyprovider.KeyProvider;
 import com.spotify.crtauth.protocol.Challenge;
+import com.spotify.crtauth.protocol.CrtAuthCodec;
 import com.spotify.crtauth.protocol.Response;
 import com.spotify.crtauth.protocol.Token;
 import com.spotify.crtauth.utils.PublicKeys;
@@ -198,7 +199,7 @@ public class CrtAuthServer {
         .setUserName(userName)
         .build();
     try {
-      return encode(challenge.serialize(secret));
+      return encode(CrtAuthCodec.serialize(challenge, secret));
     } catch (SerializationException e) {
       throw new RuntimeException(e);
     }
@@ -215,8 +216,9 @@ public class CrtAuthServer {
     final Response decodedResponse;
     final Challenge challenge;
     try {
-      decodedResponse = Response.deserialize(decode(response));
-      challenge = Challenge.deserializeAuthenticated(decodedResponse.getPayload(), secret);
+      decodedResponse = CrtAuthCodec.deserializeResponse(decode(response));
+      challenge = CrtAuthCodec.deserializeChallengeAuthenticated(
+          decodedResponse.getPayload(), secret);
     } catch (DeserializationException e) {
       throw new InvalidInputException(e);
     }
@@ -253,7 +255,7 @@ public class CrtAuthServer {
     UnsignedInteger validTo = timeSupplier.getTime().plus(tokenLifetimeInS);
     Token token = new Token(validFrom.intValue(), validTo.intValue(), challenge.getUserName());
     try {
-      return encode(token.serialize(secret));
+      return encode(CrtAuthCodec.serialize(token, secret));
     } catch (SerializationException e) {
       throw new RuntimeException(e);
     }
@@ -271,7 +273,7 @@ public class CrtAuthServer {
   public String validateToken(String token) throws InvalidInputException, TokenExpiredException {
     final Token deserializedToken;
     try {
-      deserializedToken = Token.deserializeAuthenticated(decode(token), secret);
+      deserializedToken = CrtAuthCodec.deserializeTokenAuthenticated(decode(token), secret);
     } catch (DeserializationException e) {
       throw new InvalidInputException(String.format("failed deserialize token '%s'", token));
     }

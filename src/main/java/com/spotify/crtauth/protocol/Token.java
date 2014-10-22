@@ -22,14 +22,8 @@
 package com.spotify.crtauth.protocol;
 
 import com.google.common.base.Preconditions;
-import com.spotify.crtauth.digest.VerifiableDigestAlgorithm;
-import com.spotify.crtauth.exceptions.DeserializationException;
-import com.spotify.crtauth.exceptions.InvalidInputException;
-import com.spotify.crtauth.exceptions.SerializationException;
 import com.spotify.crtauth.utils.TimeIntervals;
 import com.spotify.crtauth.utils.TimeSupplier;
-
-import java.util.Arrays;
 
 public class Token {
   private static final byte MAGIC = 't';
@@ -63,43 +57,6 @@ public class Token {
     return this.userName;
   }
 
-  public static Token deserialize(byte[] data) throws DeserializationException {
-    return doDeserialize(new MiniMessagePack.Unpacker(data));
-  }
-
-  public static Token deserializeAuthenticated(byte[] data, byte[] hmac_secret)
-      throws DeserializationException, InvalidInputException {
-    MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
-    Token c = doDeserialize(unpacker);
-    VerifiableDigestAlgorithm verifiableDigest = new VerifiableDigestAlgorithm(hmac_secret);
-    byte[] digest = verifiableDigest.getDigest(data, 0, unpacker.getBytesRead());
-    if (!Arrays.equals(digest, unpacker.unpackBin())) {
-      throw new InvalidInputException("HMAC validation failed");
-    }
-    return c;
-  }
-
-  private static Token doDeserialize(MiniMessagePack.Unpacker unpacker) throws DeserializationException {
-    MessageParserHelper.parseVersionMagic(MAGIC, unpacker);
-    return new Token(
-        unpacker.unpackInt(),   // validFrom
-        unpacker.unpackInt(),   // validTo
-        unpacker.unpackString() // userName
-    );
-  }
-
-  public byte[] serialize(byte[] hmac_secret) throws SerializationException {
-    MiniMessagePack.Packer packer = new MiniMessagePack.Packer();
-    packer.pack((byte) 0x01);
-    packer.pack(MAGIC);
-    packer.pack(validFrom);
-    packer.pack(validTo);
-    packer.pack(userName);
-    byte[] bytes = packer.getBytes();
-    byte[] mac = new VerifiableDigestAlgorithm(hmac_secret).getDigest(bytes, 0, bytes.length);
-    packer.pack(mac);
-    return packer.getBytes();
-  }
 
   @Override
   public boolean equals(Object o) {

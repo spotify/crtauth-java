@@ -24,7 +24,7 @@ package com.spotify.crtauth;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.keyprovider.InMemoryKeyProvider;
-import com.spotify.crtauth.protocol.Challenge;
+import com.spotify.crtauth.protocol.CrtAuthCodec;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
 import com.spotify.crtauth.utils.TraditionalKeyParser;
@@ -121,7 +121,7 @@ public class CrtAuthServerTest {
   }
 
   private byte[] extractFingerprint(String challenge) throws DeserializationException {
-    return Challenge.deserialize(decode(challenge)).getFingerprint();
+    return CrtAuthCodec.deserializeChallenge(decode(challenge)).getFingerprint();
   }
 
   @Test(expected = InvalidInputException.class)

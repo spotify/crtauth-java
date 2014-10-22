@@ -22,10 +22,6 @@
 package com.spotify.crtauth.protocol;
 
 import com.google.common.primitives.UnsignedInteger;
-import com.spotify.crtauth.digest.VerifiableDigestAlgorithm;
-import com.spotify.crtauth.exceptions.DeserializationException;
-import com.spotify.crtauth.exceptions.InvalidInputException;
-import com.spotify.crtauth.exceptions.SerializationException;
 import com.spotify.crtauth.utils.TimeIntervals;
 import com.spotify.crtauth.utils.TimeSupplier;
 
@@ -36,8 +32,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class Challenge {
   public static final int UNIQUE_DATA_LENGTH = 20;
   private static final int FINGERPRINT_LENGTH = 6;
-  private static final byte MAGIC = 'c';
-  private final byte VERSION = 1;
 
   private final byte[] uniqueData;
   private final int validFromTimestamp;
@@ -46,50 +40,7 @@ public class Challenge {
   private final String serverName;
   private final String userName;
 
-  public static Challenge deserialize(byte[] data) throws DeserializationException {
-    return doDeserialize(new MiniMessagePack.Unpacker(data));
-  }
 
-  public static Challenge deserializeAuthenticated(byte[] data, byte[] hmac_secret)
-     throws DeserializationException, InvalidInputException {
-    MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
-    Challenge c = doDeserialize(unpacker);
-    VerifiableDigestAlgorithm verifiableDigest = new VerifiableDigestAlgorithm(hmac_secret);
-    byte[] digest = verifiableDigest.getDigest(data, 0, unpacker.getBytesRead());
-    if (!Arrays.equals(digest, unpacker.unpackBin())) {
-      throw new InvalidInputException("HMAC validation failed");
-    }
-    return c;
-  }
-
-  private static Challenge doDeserialize(MiniMessagePack.Unpacker unpacker)
-      throws DeserializationException {
-    MessageParserHelper.parseVersionMagic(MAGIC, unpacker);
-    return new Challenge(
-        unpacker.unpackBin(),   // unique data
-        unpacker.unpackInt(),   // validFromTimestamp
-        unpacker.unpackInt(),   // validToTimestamp
-        unpacker.unpackBin(),   // fingerprint
-        unpacker.unpackString(),// serverName
-        unpacker.unpackString() // username
-    );
-  }
-
-  public byte[] serialize(byte[] hmac_secret) throws SerializationException {
-    MiniMessagePack.Packer packer = new MiniMessagePack.Packer();
-    packer.pack(VERSION);
-    packer.pack(MAGIC);
-    packer.pack(uniqueData);
-    packer.pack(validFromTimestamp);
-    packer.pack(validToTimestamp);
-    packer.pack(fingerprint);
-    packer.pack(serverName);
-    packer.pack(userName);
-    byte[] bytes = packer.getBytes();
-    byte[] mac = new VerifiableDigestAlgorithm(hmac_secret).getDigest(bytes, 0, bytes.length);
-    packer.pack(mac);
-    return packer.getBytes();
-  }
 
 
   public static class Builder {

@@ -21,17 +21,9 @@
 
 package com.spotify.crtauth.protocol;
 
-import com.spotify.crtauth.ASCIICodec;
-import com.spotify.crtauth.digest.DigestAlgorithm;
-import com.spotify.crtauth.digest.MessageHashDigestAlgorithm;
-import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.utils.SettableTimeSupplier;
-import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Arrays;
-
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -39,29 +31,13 @@ public class TokenTest {
   private static final int DEFAULT_VALID_FROM = 1365084334;
   private static final int DEFAULT_VALID_TO = 1365084634;
 
-  private static final byte[] ENCODED_TOKEN = ASCIICodec.decode(
-      "AXTOUV2Irs5RXYnao25vYcQgKVlUyZneScS57Xwk2syvL0GTQhV0FF9ciWQZYluN4m8="
-  );
-
-  private static final Token TOKEN = new Token(1365084334, 1365084634, "noa");
-
-  @Test
-  public void testSerializeToken() throws Exception {
-    assertArrayEquals(TOKEN.serialize("gurkburk".getBytes()), ENCODED_TOKEN);
-  }
-
-  @Test
-  public void testDeserializeToken() throws Exception {
-    Token token = Token.deserialize(ENCODED_TOKEN);
-    Assert.assertEquals(TOKEN, token);
-  }
 
   @Test
   public void testTokenIsNotExpired() {
     SettableTimeSupplier timeSupplier = new SettableTimeSupplier();
     for (int time = DEFAULT_VALID_FROM; time <= DEFAULT_VALID_TO; ++time) {
       timeSupplier.setTime(DEFAULT_VALID_FROM);
-      assertFalse(TOKEN.isExpired(timeSupplier));
+      assertFalse(CrtAuthCodecTest.TOKEN.isExpired(timeSupplier));
     }
   }
 
@@ -69,25 +45,13 @@ public class TokenTest {
   public void testTokenNotValid() {
     SettableTimeSupplier timeSupplier = new SettableTimeSupplier();
     timeSupplier.setTime(DEFAULT_VALID_FROM - 1);
-    assertTrue(TOKEN.isExpired(timeSupplier));
+    assertTrue(CrtAuthCodecTest.TOKEN.isExpired(timeSupplier));
   }
 
   @Test
   public void testTokenExpired() {
     SettableTimeSupplier timeSupplier = new SettableTimeSupplier();
     timeSupplier.setTime(DEFAULT_VALID_TO + 1);
-    assertTrue(TOKEN.isExpired(timeSupplier));
-  }
-
-  @Test
-  public void testDeserializeAuthenticated() throws Exception {
-    Token.deserializeAuthenticated(ENCODED_TOKEN, "gurkburk".getBytes());
-  }
-
-  @Test(expected = InvalidInputException.class)
-  public void testDeserializeAuthenticatedCorrupt() throws Exception {
-    byte[] mine = Arrays.copyOf(ENCODED_TOKEN, ENCODED_TOKEN.length);
-    mine[mine.length - 4] = 't';
-    Token.deserializeAuthenticated(mine, "gurkburk".getBytes());
+    assertTrue(CrtAuthCodecTest.TOKEN.isExpired(timeSupplier));
   }
 }
