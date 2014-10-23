@@ -28,6 +28,7 @@ import com.spotify.crtauth.protocol.CrtAuthCodec;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
 import com.spotify.crtauth.utils.TraditionalKeyParser;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,7 +39,6 @@ import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 
 import static com.spotify.crtauth.ASCIICodec.decode;
-import static org.junit.Assert.assertArrayEquals;
 
 public class CrtAuthServerTest {
   private static final String NOA_PUBLIC_KEY =
@@ -116,11 +116,11 @@ public class CrtAuthServerTest {
         .setKeyProvider(keyProvider)
         .build();
     String challenge = crtAuthServer.createChallenge("noa");
-    byte[] expectedFingerprint = decode("-6Hqb9N5");
-    assertArrayEquals(extractFingerprint(challenge), expectedFingerprint);
+    Fingerprint expectedFingerprint = new Fingerprint(decode("-6Hqb9N5"));
+    Assert.assertTrue(extractFingerprint(challenge).equals(expectedFingerprint));
   }
 
-  private byte[] extractFingerprint(String challenge) throws DeserializationException {
+  private Fingerprint extractFingerprint(String challenge) throws DeserializationException {
     return CrtAuthCodec.deserializeChallenge(decode(challenge)).getFingerprint();
   }
 

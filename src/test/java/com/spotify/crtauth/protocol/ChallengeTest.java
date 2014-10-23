@@ -23,6 +23,7 @@ package com.spotify.crtauth.protocol;
 
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.ASCIICodec;
+import com.spotify.crtauth.Fingerprint;
 import org.junit.Test;
 
 public class ChallengeTest {
@@ -31,7 +32,7 @@ public class ChallengeTest {
   public void testNegativeValidity() {
     Challenge.newBuilder()
         .setUniqueData(ASCIICodec.decode("dVhGT9Lbf_59f5ORIHZoiUc2H8I="))
-        .setFingerprint(ASCIICodec.decode("TJoHEsse"))
+        .setFingerprint(new Fingerprint(ASCIICodec.decode("TJoHEsse")))
         .setValidFromTimestamp(UnsignedInteger.valueOf(1365084634).intValue())
         .setValidToTimestamp(UnsignedInteger.valueOf(1365084334).intValue())
         .setServerName("server.example.com")
