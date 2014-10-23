@@ -26,8 +26,8 @@ import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.SerializationException;
 import com.spotify.crtauth.exceptions.SignerException;
 import com.spotify.crtauth.protocol.Challenge;
+import com.spotify.crtauth.protocol.CrtAuthCodec;
 import com.spotify.crtauth.protocol.Response;
-import com.spotify.crtauth.protocol.VerifiableMessage;
 import com.spotify.crtauth.signer.Signer;
 
 import static com.spotify.crtauth.ASCIICodec.decode;
@@ -65,27 +65,20 @@ public class CrtAuthClient {
    */
   public String createResponse(String challenge)
       throws InvalidInputException, SignerException {
-    VerifiableMessage<Challenge> vmc = buildVerifiableChallenge(challenge);
-    Challenge payload = vmc.getPayload();
-    if (!payload.getServerName().equals(serverName)) {
-      throw new InvalidInputException("Invalid serverName in challenge. Possible MITM attack.");
-    }
-    byte[] signature = signer.sign(payload);
+    byte[] decodedChallenge = decode(challenge);
+    Challenge deserializedChallenge;
     try {
-      return encode(new Response.Builder()
-          .setSignature(signature)
-          .setVerifiableChallenge(vmc)
-          .build().serialize());
-    } catch (SerializationException e) {
+      deserializedChallenge = CrtAuthCodec.deserializeChallenge(decodedChallenge);
+    } catch (DeserializationException e) {
       throw new InvalidInputException(e);
     }
-  }
-
-  private VerifiableMessage<Challenge> buildVerifiableChallenge(String challenge)
-      throws InvalidInputException {
+    if (!deserializedChallenge.getServerName().equals(serverName)) {
+      throw new InvalidInputException("Invalid serverName in challenge. Possible MITM attack.");
+    }
+    byte[] signature = signer.sign(decodedChallenge, deserializedChallenge.getFingerprint());
     try {
-      return VerifiableMessage.deserialize(decode(challenge), Challenge.deserializer());
-    } catch (DeserializationException e) {
+      return encode(CrtAuthCodec.serialize(new Response(decodedChallenge, signature)));
+    } catch (SerializationException e) {
       throw new InvalidInputException(e);
     }
   }

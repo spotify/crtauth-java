@@ -21,24 +21,17 @@
 
 package com.spotify.crtauth.protocol;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import com.google.common.primitives.UnsignedInteger;
+import com.spotify.crtauth.utils.TimeIntervals;
+import com.spotify.crtauth.utils.TimeSupplier;
 
 import java.util.Arrays;
 
-import com.google.common.primitives.UnsignedInteger;
-import com.spotify.crtauth.exceptions.DeserializationException;
-import com.spotify.crtauth.exceptions.SerializationException;
-import com.spotify.crtauth.exceptions.XdrException;
-import com.spotify.crtauth.utils.TimeIntervals;
-import com.spotify.crtauth.utils.TimeSupplier;
-import com.spotify.crtauth.xdr.Xdr;
-import com.spotify.crtauth.xdr.XdrDecoder;
-import com.spotify.crtauth.xdr.XdrEncoder;
+import static com.google.common.base.Preconditions.checkArgument;
 
-public class Challenge implements XdrSerializable {
+public class Challenge {
   public static final int UNIQUE_DATA_LENGTH = 20;
   private static final int FINGERPRINT_LENGTH = 6;
-  private static final String MAGIC = "c";
 
   private final byte[] uniqueData;
   private final int validFromTimestamp;
@@ -46,6 +39,9 @@ public class Challenge implements XdrSerializable {
   private final byte[] fingerprint;
   private final String serverName;
   private final String userName;
+
+
+
 
   public static class Builder {
     private byte[] uniqueData;
@@ -100,49 +96,6 @@ public class Challenge implements XdrSerializable {
       return new Challenge(uniqueData, validFromTimestamp, validToTimestamp,
           fingerprint, serverName, userName);
     }
-  }
-
-  private static final MessageDeserializer<Challenge> DESERIALIZER = new MessageDeserializer<Challenge>() {
-    @Override
-    public Challenge deserialize(byte[] data) throws DeserializationException {
-      final XdrDecoder decoder = Xdr.newDecoder(data);
-      final String magic;
-
-      try {
-        magic = decoder.readFixedLengthString(1);
-      } catch (final XdrException e) {
-        throw new DeserializationException(e);
-      }
-
-      if (!magic.equals(MAGIC)) {
-        throw new DeserializationException("invalid magic byte");
-      }
-
-      final byte[] uniqueData;
-      final int validFromTimestamp;
-      final int validToTimestamp;
-      final byte[] fingerprint;
-      final String serverName;
-      final String userName;
-
-      try {
-        uniqueData = decoder.readFixedLengthOpaque(UNIQUE_DATA_LENGTH);
-        validFromTimestamp = decoder.readInt();
-        validToTimestamp = decoder.readInt();
-        fingerprint = decoder.readVariableLengthOpaque();
-        serverName = decoder.readString();
-        userName = decoder.readString();
-      } catch (final XdrException e) {
-        throw new DeserializationException(e);
-      }
-
-      return new Challenge(uniqueData, validFromTimestamp, validToTimestamp,
-          fingerprint, serverName, userName);
-    }
-  };
-
-  public static MessageDeserializer<Challenge> deserializer() {
-    return DESERIALIZER;
   }
 
   public Challenge(byte[] uniqueData, int validFromTimestamp,
@@ -206,26 +159,6 @@ public class Challenge implements XdrSerializable {
         timeSupplier);
   }
 
-  @Override
-  public byte[] serialize() throws SerializationException {
-    final XdrEncoder encoder = Xdr.newEncoder();
-
-    try {
-      encoder.writeFixedLengthString(1, MAGIC);
-      encoder.writeFixedLengthOpaque(UNIQUE_DATA_LENGTH, uniqueData);
-      encoder.writeInt(validFromTimestamp);
-      encoder.writeInt(validToTimestamp);
-      encoder.writeVariableLengthOpaque(fingerprint);
-      encoder.writeString(serverName);
-      encoder.writeString(userName);
-
-      return encoder.encode();
-    } catch (XdrException e) {
-      throw new SerializationException(e);
-    }
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
@@ -240,12 +173,8 @@ public class Challenge implements XdrSerializable {
       return false;
     if (!Arrays.equals(fingerprint, challenge.fingerprint))
       return false;
-    if (!serverName.equals(challenge.serverName))
-      return false;
-    if (!userName.equals(challenge.userName))
-      return false;
+    return serverName.equals(challenge.serverName) && userName.equals(challenge.userName);
 
-    return true;
   }
 
   @Override

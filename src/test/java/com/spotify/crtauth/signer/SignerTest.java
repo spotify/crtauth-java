@@ -100,10 +100,7 @@ public abstract class SignerTest<T extends Signer> {
   @Test
   public void testSign() throws Exception {
     byte [] serialized = {0, 127, 64};
-    Challenge challenge = mock(Challenge.class);
-    when(challenge.serialize()).thenReturn(serialized);
-    when(challenge.getFingerprint()).thenReturn(PublicKeys.generateFingerprint(publicKey));
-    byte[] signature = instance.sign(challenge);
+    byte[] signature = instance.sign(serialized, PublicKeys.generateFingerprint(publicKey));
     Signature signer = Signature.getInstance(SIGNATURE_ALGORITHM);
     signer.initVerify(publicKey);
     signer.verify(signature);

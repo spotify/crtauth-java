@@ -21,53 +21,22 @@
 
 package com.spotify.crtauth.protocol;
 
-import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedInteger;
+import com.spotify.crtauth.ASCIICodec;
 import org.junit.Test;
 
-import static org.junit.Assert.assertArrayEquals;
+public class ChallengeTest {
 
-public class ChallengeTest extends XdrSerializableTest<Challenge> {
-  private static final byte[] DEFAULT_FINGERPRINT = {0, 1, 2, 127, 64, 32};
-  private static final int DEFAULT_UNIQUE_DATA_LENGTH = 20;
-  private static final byte[] DEFAULT_UNIQUE_DATA = new byte[DEFAULT_UNIQUE_DATA_LENGTH];
-
-  public static Challenge getDefaultChallenge() {
-    return Challenge.newBuilder()
-        .setFingerprint(DEFAULT_FINGERPRINT)
-        .setUniqueData(DEFAULT_UNIQUE_DATA)
-        .setServerName("server.spotify.net")
-        .setUserName("spotify")
-        .setValidFromTimestamp(0)
-        .setValidToTimestamp(100)
+  @Test(expected=IllegalArgumentException.class)
+  public void testNegativeValidity() {
+    Challenge.newBuilder()
+        .setUniqueData(ASCIICodec.decode("dVhGT9Lbf_59f5ORIHZoiUc2H8I="))
+        .setFingerprint(ASCIICodec.decode("TJoHEsse"))
+        .setValidFromTimestamp(UnsignedInteger.valueOf(1365084634).intValue())
+        .setValidToTimestamp(UnsignedInteger.valueOf(1365084334).intValue())
+        .setServerName("server.example.com")
+        .setUserName("username")
         .build();
   }
 
-  @Test
-  public void testSerializeChallenge() throws Exception {
-    final String uniqueData = "hTmeSEvGgz0MLNr3S47D6n06JPg=";
-    final String expected = "YwAAAIU5nkhLxoM9DCza90uOw+p9OiT4UV2IrlF74uAAAAAGCQLIfINbAAAAAAALZXhh" +
-            "bXBsZS5jb20AAAAABHVzZXI=";
-    final String fingerprint = "CQLIfINb";
-    BaseEncoding encoding = BaseEncoding.base64();
-    Challenge challenge = Challenge.newBuilder()
-        .setUniqueData(encoding.decode(uniqueData))
-        .setFingerprint(encoding.decode(fingerprint))
-        .setValidFromTimestamp(UnsignedInteger.valueOf(1365084334).intValue())
-        .setValidToTimestamp(UnsignedInteger.valueOf(1367073504).intValue())
-        .setServerName("example.com")
-        .setUserName("user")
-        .build();
-    assertArrayEquals(challenge.serialize(), encoding.decode(expected));
-  }
-
-  @Override
-  protected Challenge getInstance() {
-    return getDefaultChallenge();
-  }
-
-  @Override
-  protected MessageDeserializer<Challenge> getDeserializer() {
-    return Challenge.deserializer();
-  }
 }

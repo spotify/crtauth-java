@@ -21,80 +21,37 @@
 
 package com.spotify.crtauth.protocol;
 
-import com.google.common.io.BaseEncoding;
-import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.utils.SettableTimeSupplier;
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-public class TokenTest extends XdrSerializableTest<Token> {
-  private static final int DEFAULT_VALID_FROM = 10;
-  private static final int DEFAULT_VALID_TO = 20;
+public class TokenTest {
+  private static final int DEFAULT_VALID_FROM = 1365084334;
+  private static final int DEFAULT_VALID_TO = 1365084634;
 
-  public static Token getDefaultToken() {
-    return Token.newBuilder()
-        .setUserName("spotify")
-        .setValidFrom(DEFAULT_VALID_FROM)
-        .setValidTo(DEFAULT_VALID_TO)
-        .build();
-  }
-
-  @Override
-  protected Token getInstance() {
-    return getDefaultToken();
-  }
-
-  @Override
-  protected MessageDeserializer<Token> getDeserializer() {
-    return Token.deserializer();
-  }
-
-  @Test
-  public void testSerializeToken() throws Exception {
-    final String expected = "dAAAAFFdiK5RXYnaAAAAA25vYQA=";
-    Token token = new Token.Builder()
-        .setUserName("noa")
-        .setValidFrom(UnsignedInteger.valueOf(1365084334).intValue())
-        .setValidTo(UnsignedInteger.valueOf(1365084634).intValue())
-        .build();
-    assertArrayEquals(token.serialize(), BaseEncoding.base64().decode(expected));
-  }
-
-  @Test
-  public void testDeserializeToken() throws Exception {
-    final String encoded = "dAAAAFFdixdRXYtVAAAABHRlc3Q=";
-    Token token = Token.deserialize(BaseEncoding.base64().decode(encoded));
-    assertEquals(token.getUserName(), "test");
-    assertEquals(token.getValidFrom(), UnsignedInteger.valueOf(1365084951).intValue());
-  }
 
   @Test
   public void testTokenIsNotExpired() {
-    Token token = getDefaultToken();
     SettableTimeSupplier timeSupplier = new SettableTimeSupplier();
     for (int time = DEFAULT_VALID_FROM; time <= DEFAULT_VALID_TO; ++time) {
       timeSupplier.setTime(DEFAULT_VALID_FROM);
-      assertFalse(token.isExpired(timeSupplier));
+      assertFalse(CrtAuthCodecTest.TOKEN.isExpired(timeSupplier));
     }
   }
 
   @Test
   public void testTokenNotValid() {
-    Token token = getDefaultToken();
     SettableTimeSupplier timeSupplier = new SettableTimeSupplier();
     timeSupplier.setTime(DEFAULT_VALID_FROM - 1);
-    assertTrue(token.isExpired(timeSupplier));
+    assertTrue(CrtAuthCodecTest.TOKEN.isExpired(timeSupplier));
   }
 
   @Test
   public void testTokenExpired() {
-    Token token = getDefaultToken();
     SettableTimeSupplier timeSupplier = new SettableTimeSupplier();
     timeSupplier.setTime(DEFAULT_VALID_TO + 1);
-    assertTrue(token.isExpired(timeSupplier));
+    assertTrue(CrtAuthCodecTest.TOKEN.isExpired(timeSupplier));
   }
 }
