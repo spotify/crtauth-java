@@ -60,8 +60,8 @@ public class CrtAuthClient {
    *
    * @param challenge A challenge String obtained from a server.
    * @return The response String to be returned to the server.
-   * @throws com.spotify.crtauth.exceptions.InvalidInputException if there is something wrong with the challenge.
-   * @throws com.spotify.crtauth.exceptions.SignerException If a valid signature for the input challenge cannot be produced.
+   * @throws InvalidInputException if there is something wrong with the challenge.
+   * @throws SignerException If a valid signature for the input challenge cannot be produced.
    */
   public String createResponse(String challenge)
       throws InvalidInputException, SignerException {
