@@ -16,12 +16,14 @@
 
 package com.spotify.crtauth.protocol;
 
-import com.spotify.crtauth.digest.VerifiableDigestAlgorithm;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.ProtocolVersionException;
 import com.spotify.crtauth.exceptions.SerializationException;
 
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.util.Arrays;
 
 /**
@@ -34,6 +36,8 @@ public class CrtAuthCodec {
   private static final byte CHALLENGE_MAGIC = 'c';
   private static final byte RESPONSE_MAGIC = 'r';
   private static final byte TOKEN_MAGIC = 't';
+
+  private static final String MAC_ALGORITHM = "HmacSHA256";
 
   /**
    * Serialize a challenge into it's binary representation
@@ -55,7 +59,7 @@ public class CrtAuthCodec {
     packer.pack(challenge.getServerName());
     packer.pack(challenge.getUserName());
     byte[] bytes = packer.getBytes();
-    byte[] mac = new VerifiableDigestAlgorithm(hmac_secret).getDigest(bytes, 0, bytes.length);
+    byte[] mac = getAuthenticationCode(hmac_secret, bytes);
     packer.pack(mac);
     return packer.getBytes();
   }
@@ -68,8 +72,7 @@ public class CrtAuthCodec {
       throws DeserializationException, InvalidInputException {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
     Challenge c = doDeserializeChallenge(unpacker);
-    VerifiableDigestAlgorithm verifiableDigest = new VerifiableDigestAlgorithm(hmac_secret);
-    byte[] digest = verifiableDigest.getDigest(data, 0, unpacker.getBytesRead());
+    byte[] digest = getAuthenticationCode(hmac_secret, data, unpacker.getBytesRead());
     if (!Arrays.equals(digest, unpacker.unpackBin())) {
       throw new InvalidInputException("HMAC validation failed");
     }
@@ -110,8 +113,7 @@ public class CrtAuthCodec {
       throws DeserializationException, InvalidInputException {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
     Token c = doDeserializeToken(unpacker);
-    VerifiableDigestAlgorithm verifiableDigest = new VerifiableDigestAlgorithm(hmac_secret);
-    byte[] digest = verifiableDigest.getDigest(data, 0, unpacker.getBytesRead());
+    byte[] digest = getAuthenticationCode(hmac_secret, data, unpacker.getBytesRead());
     if (!Arrays.equals(digest, unpacker.unpackBin())) {
       throw new InvalidInputException("HMAC validation failed");
     }
@@ -125,9 +127,7 @@ public class CrtAuthCodec {
     packer.pack(token.getValidFrom());
     packer.pack(token.getValidTo());
     packer.pack(token.getUserName());
-    byte[] bytes = packer.getBytes();
-    byte[] mac = new VerifiableDigestAlgorithm(hmac_secret).getDigest(bytes, 0, bytes.length);
-    packer.pack(mac);
+    packer.pack(getAuthenticationCode(hmac_secret, packer.getBytes()));
     return packer.getBytes();
   }
 
@@ -152,6 +152,32 @@ public class CrtAuthCodec {
         unpacker.unpackInt(),   // validTo
         unpacker.unpackString() // userName
     );
+  }
+
+  /**
+   * Calculate and return a keyed hash message authentication code, HMAC, as specified in RFC2104
+   * using SHA256 as hash function.
+   *
+   * @param secret the secret used to authenticate
+   * @param data the data to authenticate
+   * @param length the number of bytes from data to use when calculating the HMAC
+   * @return an HMAC code for the specified data and secret
+   */
+
+  private static byte[] getAuthenticationCode(byte[] secret, byte[] data, int length) {
+    try {
+      SecretKey secretKey = new SecretKeySpec(secret, MAC_ALGORITHM);
+      Mac mac = Mac.getInstance(MAC_ALGORITHM);
+      mac.init(secretKey);
+      mac.update(data, 0, length);
+      return mac.doFinal();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static byte[] getAuthenticationCode(byte[] secret, byte[] data) {
+    return getAuthenticationCode(secret, data, data.length);
   }
 
   private static void parseVersionMagic(byte magic, MiniMessagePack.Unpacker unpacker)
