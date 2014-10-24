@@ -35,7 +35,6 @@ import com.spotify.crtauth.protocol.Challenge;
 import com.spotify.crtauth.protocol.CrtAuthCodec;
 import com.spotify.crtauth.protocol.Response;
 import com.spotify.crtauth.protocol.Token;
-import com.spotify.crtauth.utils.PublicKeys;
 import com.spotify.crtauth.utils.RealTimeSupplier;
 import com.spotify.crtauth.utils.TimeSupplier;
 
@@ -191,7 +190,7 @@ public class CrtAuthServer {
     UnsignedInteger timeNow = timeSupplier.getTime();
     random.nextBytes(uniqueData);
     Challenge challenge = Challenge.newBuilder()
-        .setFingerprint(PublicKeys.generateFingerprint(key))
+        .setFingerprint(new Fingerprint(key))
         .setUniqueData(uniqueData)
         .setValidFromTimestamp(timeNow.minus(CLOCK_FUDGE))
         .setValidToTimestamp(timeNow.plus(RESPONSE_TIMEOUT))

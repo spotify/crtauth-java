@@ -22,8 +22,7 @@
 package com.spotify.crtauth.signer;
 
 import com.google.common.io.BaseEncoding;
-import com.spotify.crtauth.protocol.Challenge;
-import com.spotify.crtauth.utils.PublicKeys;
+import com.spotify.crtauth.Fingerprint;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,9 +34,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public abstract class SignerTest<T extends Signer> {
   private static final String SIGNATURE_ALGORITHM = "SHA1withRSA";
@@ -100,7 +96,7 @@ public abstract class SignerTest<T extends Signer> {
   @Test
   public void testSign() throws Exception {
     byte [] serialized = {0, 127, 64};
-    byte[] signature = instance.sign(serialized, PublicKeys.generateFingerprint(publicKey));
+    byte[] signature = instance.sign(serialized, new Fingerprint(publicKey));
     Signature signer = Signature.getInstance(SIGNATURE_ALGORITHM);
     signer.initVerify(publicKey);
     signer.verify(signature);

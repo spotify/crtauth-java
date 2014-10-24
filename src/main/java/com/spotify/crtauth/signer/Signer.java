@@ -21,8 +21,8 @@
 
 package com.spotify.crtauth.signer;
 
+import com.spotify.crtauth.Fingerprint;
 import com.spotify.crtauth.exceptions.SignerException;
-import com.spotify.crtauth.protocol.Challenge;
 
 /**
  * This interface wraps a single method to sign a challenge. It's the core component of the
@@ -39,6 +39,5 @@ public interface Signer {
    * @throws SignerException If the signer can't produce a valid signature (for example if the
    *    challenge can't be serialized).
    */
-  // TODO: create properly typed fingerprint
-  public byte[] sign(byte[] data, byte[] fingerprint) throws SignerException;
+  public byte[] sign(byte[] data, Fingerprint fingerprint) throws SignerException;
 }

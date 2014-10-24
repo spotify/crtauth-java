@@ -21,6 +21,7 @@ import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.ProtocolVersionException;
 import com.spotify.crtauth.exceptions.SerializationException;
+import com.spotify.crtauth.Fingerprint;
 
 import java.util.Arrays;
 
@@ -51,7 +52,7 @@ public class CrtAuthCodec {
     packer.pack(challenge.getUniqueData());
     packer.pack(challenge.getValidFromTimestamp());
     packer.pack(challenge.getValidToTimestamp());
-    packer.pack(challenge.getFingerprint());
+    packer.pack(challenge.getFingerprint().getBytes());
     packer.pack(challenge.getServerName());
     packer.pack(challenge.getUserName());
     byte[] bytes = packer.getBytes();
@@ -136,12 +137,12 @@ public class CrtAuthCodec {
       throws DeserializationException {
     parseVersionMagic(CHALLENGE_MAGIC, unpacker);
     return new Challenge(
-        unpacker.unpackBin(),   // unique data
-        unpacker.unpackInt(),   // validFromTimestamp
-        unpacker.unpackInt(),   // validToTimestamp
-        unpacker.unpackBin(),   // fingerprint
-        unpacker.unpackString(),// serverName
-        unpacker.unpackString() // username
+        unpacker.unpackBin(),                  // unique data
+        unpacker.unpackInt(),                  // validFromTimestamp
+        unpacker.unpackInt(),                  // validToTimestamp
+        new Fingerprint(unpacker.unpackBin()), // fingerprint
+        unpacker.unpackString(),               // serverName
+        unpacker.unpackString()                // username
     );
   }
 

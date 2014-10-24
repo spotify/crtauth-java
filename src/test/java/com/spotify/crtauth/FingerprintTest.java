@@ -19,18 +19,19 @@
  * under the License.
  */
 
-package com.spotify.crtauth.utils;
+package com.spotify.crtauth;
 
 import com.google.common.io.BaseEncoding;
+import com.spotify.crtauth.utils.TraditionalKeyParser;
 import org.junit.Test;
 
 import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPublicKeySpec;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
-public class PublicKeysTest {
+public class FingerprintTest {
   private static final String PUBLIC_PEM_KEY = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDjKPW24a0" +
       "Go7ETiMP/j8DsnG+E6bB2DvCuX5hJLbBKE/oBMsZ3eB8MyROXmv/h0b0OzugEx+llxIo0FpnsuJxMlF7xpEp7dHK" +
       "HTUdxWIclmGjI6tzurX+sDerUuJk9gNj3SK67lcZI5tsrXjDsy+ZpVQWcL/6trB9r69VDGm+GfnC8JIItLesAbJ1" +
@@ -45,8 +46,8 @@ public class PublicKeysTest {
 
     RSAPublicKeySpec keySpec = TraditionalKeyParser.parsePemPublicKey(PUBLIC_PEM_KEY);
     RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(keySpec);
-    byte[] actual = PublicKeys.generateFingerprint(publicKey);
-    byte[] expected = encoding.decode(expectedEncodedFingerprint);
-    assertArrayEquals(actual, expected);
+    Fingerprint actual = new Fingerprint(publicKey);
+    Fingerprint expected = new Fingerprint(encoding.decode(expectedEncodedFingerprint));
+    assertEquals(actual, expected);
   }
 }

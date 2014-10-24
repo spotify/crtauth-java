@@ -22,17 +22,14 @@
 package com.spotify.crtauth.signer;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.spotify.crtauth.Fingerprint;
 import com.spotify.crtauth.exceptions.SignerException;
-import com.spotify.crtauth.protocol.Challenge;
-import com.spotify.crtauth.utils.PublicKeys;
 import org.apache.sshd.agent.SshAgent;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.Arrays;
-import java.util.List;
 
 public class AgentSigner implements Signer {
   private SshAgent sshAgent;
@@ -41,22 +38,8 @@ public class AgentSigner implements Signer {
     this.sshAgent = sshAgent;
   }
 
-  @VisibleForTesting
-  PublicKey getKeyFromFingerprint(byte[] referenceFingerprint) throws IOException,
-      NoSuchAlgorithmException{
-    List<SshAgent.Pair<PublicKey, String>> identities = sshAgent.getIdentities();
-    for (SshAgent.Pair<PublicKey, String> identity : identities) {
-      RSAPublicKey publicKey = (RSAPublicKey) identity.getFirst();
-      byte[] fingerprint = PublicKeys.generateFingerprint(publicKey);
-      if (Arrays.equals(referenceFingerprint, fingerprint)) {
-        return publicKey;
-      }
-    }
-    return null;
-  }
-
   @Override
-  public byte[] sign(byte[] data, byte[] fingerprint) throws SignerException {
+  public byte[] sign(byte[] data, Fingerprint fingerprint) throws SignerException {
     PublicKey publicKey;
     try {
       publicKey = getKeyFromFingerprint(fingerprint);
@@ -73,5 +56,17 @@ public class AgentSigner implements Signer {
       throw new SignerException();
     }
     return signed;
+  }
+
+  @VisibleForTesting
+  PublicKey getKeyFromFingerprint(Fingerprint referenceFingerprint) throws IOException,
+      NoSuchAlgorithmException{
+    for (SshAgent.Pair<PublicKey, String> identity : sshAgent.getIdentities()) {
+      RSAPublicKey candidate = (RSAPublicKey)identity.getFirst();
+      if (referenceFingerprint.matches(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
   }
 }

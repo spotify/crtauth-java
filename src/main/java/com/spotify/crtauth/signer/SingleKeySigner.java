@@ -21,6 +21,7 @@
 
 package com.spotify.crtauth.signer;
 
+import com.spotify.crtauth.Fingerprint;
 import com.spotify.crtauth.exceptions.SignerException;
 
 import java.security.PrivateKey;
@@ -35,7 +36,7 @@ public class SingleKeySigner implements Signer {
   }
 
   @Override
-  public byte[] sign(byte[] data, byte[] fingerprint) throws SignerException {
+  public byte[] sign(byte[] data, Fingerprint fingerprint) throws SignerException {
     try {
       Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
       signature.initSign(privateKey);

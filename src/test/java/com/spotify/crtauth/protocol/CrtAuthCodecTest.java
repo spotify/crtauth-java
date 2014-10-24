@@ -19,6 +19,7 @@ package com.spotify.crtauth.protocol;
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.ASCIICodec;
 import com.spotify.crtauth.CrtAuthClientTest;
+import com.spotify.crtauth.Fingerprint;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.signer.Signer;
@@ -53,7 +54,7 @@ public class CrtAuthCodecTest {
 
   private static final Challenge CHALLENGE = Challenge.newBuilder()
         .setUniqueData(ASCIICodec.decode("dVhGT9Lbf_59f5ORIHZoiUc2H8I="))
-        .setFingerprint(ASCIICodec.decode("TJoHEsse"))
+        .setFingerprint(new Fingerprint(ASCIICodec.decode("TJoHEsse")))
         .setValidFromTimestamp(UnsignedInteger.valueOf(1365084334).intValue())
         .setValidToTimestamp(UnsignedInteger.valueOf(1365084634).intValue())
         .setServerName("server.example.com")
@@ -128,7 +129,7 @@ public class CrtAuthCodecTest {
   }
 
 
-  private byte[] getFingerprint(byte[] challenge) throws DeserializationException {
+  private Fingerprint getFingerprint(byte[] challenge) throws DeserializationException {
     return CrtAuthCodec.deserializeChallenge(challenge).getFingerprint();
   }
 

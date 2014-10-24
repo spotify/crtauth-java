@@ -22,6 +22,7 @@
 package com.spotify.crtauth.protocol;
 
 import com.google.common.primitives.UnsignedInteger;
+import com.spotify.crtauth.Fingerprint;
 import com.spotify.crtauth.utils.TimeIntervals;
 import com.spotify.crtauth.utils.TimeSupplier;
 
@@ -31,12 +32,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class Challenge {
   public static final int UNIQUE_DATA_LENGTH = 20;
-  private static final int FINGERPRINT_LENGTH = 6;
 
   private final byte[] uniqueData;
   private final int validFromTimestamp;
   private final int validToTimestamp;
-  private final byte[] fingerprint;
+  private final Fingerprint fingerprint;
   private final String serverName;
   private final String userName;
 
@@ -47,7 +47,7 @@ public class Challenge {
     private byte[] uniqueData;
     private int validFromTimestamp;
     private int validToTimestamp;
-    private byte[] fingerprint;
+    private Fingerprint fingerprint;
     private String serverName;
     private String userName;
 
@@ -77,8 +77,8 @@ public class Challenge {
       return this;
     }
 
-    public Builder setFingerprint(byte[] fingerprint) {
-      this.fingerprint = Arrays.copyOf(fingerprint, FINGERPRINT_LENGTH);
+    public Builder setFingerprint(Fingerprint fingerprint) {
+      this.fingerprint = fingerprint;
       return this;
     }
 
@@ -99,7 +99,7 @@ public class Challenge {
   }
 
   public Challenge(byte[] uniqueData, int validFromTimestamp,
-      int validToTimestamp, byte[] fingerprint, String serverName,
+      int validToTimestamp, Fingerprint fingerprint, String serverName,
       String userName) {
     if (uniqueData == null)
       throw new IllegalArgumentException("'uniqueData' must be set");
@@ -142,8 +142,8 @@ public class Challenge {
     return validToTimestamp;
   }
 
-  public byte[] getFingerprint() {
-    return Arrays.copyOf(fingerprint, fingerprint.length);
+  public Fingerprint getFingerprint() {
+    return fingerprint;
   }
 
   public String getServerName() {
@@ -165,15 +165,12 @@ public class Challenge {
 
     Challenge challenge = (Challenge) o;
 
-    if (!Arrays.equals(uniqueData, challenge.uniqueData))
-      return false;
-    if (validFromTimestamp != challenge.validFromTimestamp)
-      return false;
-    if (validToTimestamp != challenge.validToTimestamp)
-      return false;
-    if (!Arrays.equals(fingerprint, challenge.fingerprint))
-      return false;
-    return serverName.equals(challenge.serverName) && userName.equals(challenge.userName);
+    return Arrays.equals(uniqueData, challenge.uniqueData)
+        && validFromTimestamp == challenge.validFromTimestamp
+        && validToTimestamp == challenge.validToTimestamp
+        && fingerprint.equals(challenge.fingerprint)
+        && serverName.equals(challenge.serverName)
+        && userName.equals(challenge.userName);
 
   }
 
@@ -182,7 +179,7 @@ public class Challenge {
     int result = Arrays.hashCode(uniqueData);
     result = 31 * result + validFromTimestamp;
     result = 31 * result + validToTimestamp;
-    result = 31 * result + Arrays.hashCode(fingerprint);
+    result = 31 * result + fingerprint.hashCode();
     result = 31 * result + serverName.hashCode();
     result = 31 * result + userName.hashCode();
     return result;
