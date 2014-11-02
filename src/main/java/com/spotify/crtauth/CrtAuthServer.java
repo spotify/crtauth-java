@@ -23,8 +23,6 @@ package com.spotify.crtauth;
 
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
-import com.spotify.crtauth.digest.DigestAlgorithm;
-import com.spotify.crtauth.digest.VerifiableDigestAlgorithm;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.KeyNotFoundException;
@@ -81,7 +79,6 @@ public class CrtAuthServer {
   private final Random random;
   @SuppressWarnings("unused")
   private final byte[] secret;
-  private final DigestAlgorithm digestAlgorithm;
 
   public static class Builder {
     private static final UnsignedInteger DEFAULT_TOKEN_LIFETIME_IN_S =
@@ -93,7 +90,6 @@ public class CrtAuthServer {
     private Optional<TimeSupplier> timeSupplier = Optional.absent();
     private Optional<Random> random = Optional.absent();
     private byte[] secret;
-    private Optional<DigestAlgorithm> digestAlgorithm = Optional.absent();
 
     public Builder setTokenLifetimeInS(int tokenLifetimeInS) {
       this.tokenLifetimeInS = Optional.of(UnsignedInteger.fromIntBits(tokenLifetimeInS));
@@ -126,11 +122,6 @@ public class CrtAuthServer {
       return this;
     }
 
-    public Builder setDigestAlgorithm(DigestAlgorithm digestAlgorithm) {
-      this.digestAlgorithm = Optional.of(digestAlgorithm);
-      return this;
-    }
-
     public CrtAuthServer build() {
       checkNotNull(serverName);
       checkNotNull(keyProvider);
@@ -140,8 +131,8 @@ public class CrtAuthServer {
           keyProvider,
           timeSupplier.or(DEFAULT_TIME_SUPPLIER),
           random.or(new Random()),
-          secret,
-          digestAlgorithm.or(new VerifiableDigestAlgorithm(secret)));
+          secret
+      );
      }
   }
 
@@ -156,12 +147,9 @@ public class CrtAuthServer {
    * @param random A source of randomness.
    * @param secret A byte array that represents the server secret. Used as part of Hash-based
    *    message authentication codes to verify the source of requests.
-   * @param digestAlgorithm An implementation of the {@code DigestAlgorithm} interface, used to
-   *    compute Hash-based message authentication codes. Make sure that the client and the server
-   *    use the same digestAlgorithm.
    */
   public CrtAuthServer(UnsignedInteger tokenLifetimeInS, String serverName, KeyProvider keyProvider,
-      TimeSupplier timeSupplier, Random random, byte[] secret, DigestAlgorithm digestAlgorithm) {
+      TimeSupplier timeSupplier, Random random, byte[] secret) {
     this.tokenLifetimeInS = tokenLifetimeInS;
     this.serverName = serverName;
     this.keyProvider = keyProvider;
@@ -169,7 +157,6 @@ public class CrtAuthServer {
     this.random = random;
     checkArgument(secret != null && secret.length > 0);
     this.secret = Arrays.copyOf(secret, secret.length);
-    this.digestAlgorithm = digestAlgorithm;
   }
 
   /**
