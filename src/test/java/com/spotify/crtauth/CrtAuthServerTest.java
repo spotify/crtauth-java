@@ -115,7 +115,7 @@ public class CrtAuthServerTest {
         .setSecret(serverSecret)
         .setKeyProvider(keyProvider)
         .build();
-    String challenge = crtAuthServer.createChallenge("noa");
+    String challenge = crtAuthServer.createChallenge(CrtAuthClient.createRequest("noa"));
     Fingerprint expectedFingerprint = new Fingerprint(decode("-6Hqb9N5"));
     Assert.assertTrue(extractFingerprint(challenge).equals(expectedFingerprint));
   }
@@ -128,7 +128,7 @@ public class CrtAuthServerTest {
         .setSecret(serverSecret)
         .setKeyProvider(keyProvider)
         .build();
-    String encodedChallenge = crtAuthServer.createChallenge("another");
+    String encodedChallenge = crtAuthServer.createChallenge(CrtAuthClient.createRequest("another"));
     // just make sure that we have a parsable challenge
     CrtAuthCodec.deserializeChallenge(ASCIICodec.decode(encodedChallenge));
   }
@@ -144,7 +144,7 @@ public class CrtAuthServerTest {
         .setSecret("server_secret".getBytes())
         .setKeyProvider(keyProvider)
         .build();
-    String verifiableChallenge = crtAuthServer.createChallenge("test");
+    String verifiableChallenge = crtAuthServer.createChallenge(CrtAuthClient.createRequest("test"));
     String response = crtAuthClient.createResponse(verifiableChallenge);
     otherOuthServer.createToken(response);
   }
@@ -156,7 +156,7 @@ public class CrtAuthServerTest {
         .setSecret("another_secret".getBytes())
         .setKeyProvider(keyProvider)
         .build();
-    String verifiableChallenge = crtAuthServer.createChallenge("test");
+    String verifiableChallenge = crtAuthServer.createChallenge(CrtAuthClient.createRequest("test"));
     String response = crtAuthClient.createResponse(verifiableChallenge);
     otherServer.validateToken(crtAuthServer.createToken(response));
   }

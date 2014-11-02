@@ -18,6 +18,7 @@ package com.spotify.crtauth.protocol;
 
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.ASCIICodec;
+import com.spotify.crtauth.CrtAuthClient;
 import com.spotify.crtauth.CrtAuthClientTest;
 import com.spotify.crtauth.Fingerprint;
 import com.spotify.crtauth.exceptions.DeserializationException;
@@ -28,6 +29,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests CrtAuthCodec
@@ -76,7 +79,7 @@ public class CrtAuthCodecTest {
     Challenge challenge = CrtAuthCodec.deserializeChallengeAuthenticated(
         ENCODED_CHALLENGE, "secret".getBytes());
 
-    Assert.assertEquals(CHALLENGE, challenge);
+    assertEquals(CHALLENGE, challenge);
   }
 
   @Test
@@ -98,7 +101,7 @@ public class CrtAuthCodecTest {
     Signer signer = new SingleKeySigner(CrtAuthClientTest.getPrivateKey());
     byte[] signature = signer.sign(r.getPayload(), c.getFingerprint());
     Assert.assertArrayEquals(signature, r.getSignature());
-    Assert.assertEquals(c, CHALLENGE);
+    assertEquals(c, CHALLENGE);
   }
 
   @Test
@@ -109,7 +112,7 @@ public class CrtAuthCodecTest {
   @Test
   public void testDeserializeToken() throws Exception {
     Token token = CrtAuthCodec.deserializeToken(ENCODED_TOKEN);
-    Assert.assertEquals(TOKEN, token);
+    assertEquals(TOKEN, token);
   }
 
   @Test(expected = InvalidInputException.class)
@@ -133,5 +136,10 @@ public class CrtAuthCodecTest {
     return CrtAuthCodec.deserializeChallenge(challenge).getFingerprint();
   }
 
+
+  @Test
+  public void testDeserializeRequest() throws Exception {
+    assertEquals("noa", CrtAuthCodec.deserializeRequest("AXGjbm9h"));
+  }
 
 }
