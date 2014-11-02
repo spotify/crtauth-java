@@ -120,6 +120,19 @@ public class CrtAuthServerTest {
     Assert.assertTrue(extractFingerprint(challenge).equals(expectedFingerprint));
   }
 
+  @Test
+  public void testCreateChallengeUnknownUser() throws Exception {
+    byte[] serverSecret = "spotify".getBytes();
+    CrtAuthServer crtAuthServer = new CrtAuthServer.Builder()
+        .setServerName("server_name")
+        .setSecret(serverSecret)
+        .setKeyProvider(keyProvider)
+        .build();
+    String encodedChallenge = crtAuthServer.createChallenge("another");
+    // just make sure that we have a parsable challenge
+    CrtAuthCodec.deserializeChallenge(ASCIICodec.decode(encodedChallenge));
+  }
+
   private Fingerprint extractFingerprint(String challenge) throws DeserializationException {
     return CrtAuthCodec.deserializeChallenge(decode(challenge)).getFingerprint();
   }

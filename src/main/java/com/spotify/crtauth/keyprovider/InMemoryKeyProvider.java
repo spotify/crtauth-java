@@ -36,6 +36,10 @@ public class InMemoryKeyProvider implements KeyProvider {
 
   @Override
   public RSAPublicKey getKey(String username) throws KeyNotFoundException {
-    return keys.get(username);
+    RSAPublicKey key = keys.get(username);
+    if (key == null) {
+      throw new KeyNotFoundException();
+    }
+    return key;
   }
 }
