@@ -36,10 +36,11 @@ import com.spotify.crtauth.protocol.Response;
 import com.spotify.crtauth.protocol.Token;
 import com.spotify.crtauth.utils.RealTimeSupplier;
 import com.spotify.crtauth.utils.TimeSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.PublicKey;
 import java.security.Signature;
-import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -79,6 +80,8 @@ public class CrtAuthServer {
   private final TimeSupplier timeSupplier;
   private final Random random;
   private final byte[] secret;
+
+  private static final Logger log = LoggerFactory.getLogger(CrtAuthServer.class);
 
   public static class Builder {
     private static final UnsignedInteger DEFAULT_TOKEN_LIFETIME_IN_S =
@@ -175,12 +178,10 @@ public class CrtAuthServer {
   public String createChallenge(String userName) {
     Fingerprint fingerprint;
     try {
-      RSAPublicKey key = keyProvider.getKey(userName);
-      fingerprint = new Fingerprint(key);
+      fingerprint = new Fingerprint(keyProvider.getKey(userName));
     } catch (KeyNotFoundException e) {
-      byte[] usernameHmac = CrtAuthCodec.getAuthenticationCode(
-          this.secret, userName.getBytes(Charsets.UTF_8));
-      fingerprint = new Fingerprint(Arrays.copyOfRange(usernameHmac, 0, 6));
+      log.info("No public key found for user {}, creating fake fingerprint", userName);
+      fingerprint = createFakeFingerprint(userName);
     }
 
     byte[] uniqueData = new byte[Challenge.UNIQUE_DATA_LENGTH];
@@ -199,6 +200,18 @@ public class CrtAuthServer {
     } catch (SerializationException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * Generate a fake real looking fingerprint for a nonexistant user.
+   *
+   * @param userName the username to seed the transform with
+   * @return a Fingerprint with bytes that are a function of username and secret
+   */
+  private Fingerprint createFakeFingerprint(String userName) {
+    byte[] usernameHmac = CrtAuthCodec.getAuthenticationCode(
+        this.secret, userName.getBytes(Charsets.UTF_8));
+    return new Fingerprint(Arrays.copyOfRange(usernameHmac, 0, 6));
   }
 
   /**
