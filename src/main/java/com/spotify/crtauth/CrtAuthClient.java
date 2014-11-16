@@ -83,4 +83,15 @@ public class CrtAuthClient {
       throw new InvalidInputException(e);
     }
   }
+
+  /**
+   * Create a request string from a username. Request is too trivial for it to make it into a
+   * class of it's own a this stage.
+   *
+   * @param username the username to encode
+   * @return an encoded request message
+   */
+  public static String createRequest(String username) {
+    return CrtAuthCodec.serializeEncodedRequest(username);
+  }
 }

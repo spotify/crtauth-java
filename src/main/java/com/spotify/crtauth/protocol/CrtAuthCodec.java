@@ -16,6 +16,7 @@
 
 package com.spotify.crtauth.protocol;
 
+import com.spotify.crtauth.ASCIICodec;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.ProtocolVersionException;
@@ -37,6 +38,8 @@ public class CrtAuthCodec {
   private static final byte CHALLENGE_MAGIC = 'c';
   private static final byte RESPONSE_MAGIC = 'r';
   private static final byte TOKEN_MAGIC = 't';
+  private static final byte REQUEST_MAGIC = 'q';
+
 
   private static final String MAC_ALGORITHM = "HmacSHA256";
 
@@ -181,6 +184,33 @@ public class CrtAuthCodec {
     return getAuthenticationCode(secret, data, data.length);
   }
 
+  /**
+   * Create a request string from a username. Request is too trivial for it to make it into a
+   * class of it's own a this stage.
+   *
+   * @param username the username to encode
+   * @return an encoded request message
+   */
+  public static String serializeEncodedRequest(String username) {
+    MiniMessagePack.Packer packer = new MiniMessagePack.Packer();
+    packer.pack(1);
+    packer.pack('q');
+    packer.pack(username);
+    return ASCIICodec.encode(packer.getBytes());
+  }
+
+  /**
+   *
+   *
+   * @param request
+   * @return
+   */
+  public static String deserializeRequest(String request) throws DeserializationException {
+    MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(ASCIICodec.decode(request));
+    parseVersionMagic(REQUEST_MAGIC, unpacker);
+    return unpacker.unpackString();
+  }
+
   private static void parseVersionMagic(byte magic, MiniMessagePack.Unpacker unpacker)
       throws DeserializationException {
 
@@ -202,5 +232,6 @@ public class CrtAuthCodec {
           "invalid magic byte, expected %d but got %d", readMagic, magic));
     }
   }
+
 
 }

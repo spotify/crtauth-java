@@ -29,14 +29,14 @@ import com.spotify.crtauth.utils.TraditionalKeyParser;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
+
+import static org.junit.Assert.assertEquals;
 
 public class CrtAuthClientTest {
   private static final String SERVER_NAME = "server_name";
@@ -117,7 +117,7 @@ public class CrtAuthClientTest {
 
   @Test
   public void testValidResponse() throws Exception {
-    String challenge = crtAuthServer.createChallenge("test");
+    String challenge = crtAuthServer.createChallenge(CrtAuthClient.createRequest("test"));
     CrtAuthClient crtAuthClient = new CrtAuthClient(signer, SERVER_NAME);
     String response = crtAuthClient.createResponse(challenge);
     String verifiableToken = crtAuthServer.createToken(response);
@@ -126,8 +126,13 @@ public class CrtAuthClientTest {
 
   @Test(expected = InvalidInputException.class)
   public void testMitm() throws Exception {
-    String verifiableChallenge = crtAuthServer.createChallenge("test");
+    String verifiableChallenge = crtAuthServer.createChallenge(CrtAuthClient.createRequest("test"));
     CrtAuthClient crtAuthClient = new CrtAuthClient(signer, "another_server");
     crtAuthClient.createResponse(verifiableChallenge);
+  }
+
+  @Test
+  public void testCreateRequest() throws Exception {
+    assertEquals("AXGjbm9h", CrtAuthClient.createRequest("noa"));
   }
 }

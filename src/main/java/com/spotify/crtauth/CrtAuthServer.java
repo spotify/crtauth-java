@@ -170,12 +170,19 @@ public class CrtAuthServer {
    * the public key, a fake Fingerprint is generated so that the presence of a challenge doesn't
    * reveal whether a user key is present on the server or not.
    *
-   * @param userName The username of the user to be authenticated, in the format required by
-   *    KeyProvider instances
+   * @param request The request message which contains an encoded username
    *
    * @return A challenge message.
    */
-  public String createChallenge(String userName) {
+  public String createChallenge(String request) throws InvalidInputException {
+
+    String userName = null;
+    try {
+      userName = CrtAuthCodec.deserializeRequest(request);
+    } catch (DeserializationException e) {
+      throw new InvalidInputException(e);
+    }
+
     Fingerprint fingerprint;
     try {
       fingerprint = new Fingerprint(keyProvider.getKey(userName));
