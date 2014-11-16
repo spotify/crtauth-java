@@ -23,6 +23,7 @@ package com.spotify.crtauth;
 
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
+import com.spotify.crtauth.exceptions.KeyNotFoundException;
 import com.spotify.crtauth.exceptions.SerializationException;
 import com.spotify.crtauth.exceptions.SignerException;
 import com.spotify.crtauth.protocol.Challenge;
@@ -64,7 +65,7 @@ public class CrtAuthClient {
    * @throws SignerException If a valid signature for the input challenge cannot be produced.
    */
   public String createResponse(String challenge)
-      throws InvalidInputException, SignerException {
+      throws InvalidInputException, SignerException, KeyNotFoundException {
     byte[] decodedChallenge = decode(challenge);
     Challenge deserializedChallenge;
     try {
