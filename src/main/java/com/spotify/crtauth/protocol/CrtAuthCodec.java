@@ -177,7 +177,7 @@ public class CrtAuthCodec {
     }
   }
 
-  private static byte[] getAuthenticationCode(byte[] secret, byte[] data) {
+  public static byte[] getAuthenticationCode(byte[] secret, byte[] data) {
     return getAuthenticationCode(secret, data, data.length);
   }
 

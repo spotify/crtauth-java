@@ -21,6 +21,7 @@
 
 package com.spotify.crtauth;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.exceptions.DeserializationException;
@@ -35,10 +36,11 @@ import com.spotify.crtauth.protocol.Response;
 import com.spotify.crtauth.protocol.Token;
 import com.spotify.crtauth.utils.RealTimeSupplier;
 import com.spotify.crtauth.utils.TimeSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.PublicKey;
 import java.security.Signature;
-import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -77,8 +79,9 @@ public class CrtAuthServer {
   private final KeyProvider keyProvider;
   private final TimeSupplier timeSupplier;
   private final Random random;
-  @SuppressWarnings("unused")
   private final byte[] secret;
+
+  private static final Logger log = LoggerFactory.getLogger(CrtAuthServer.class);
 
   public static class Builder {
     private static final UnsignedInteger DEFAULT_TOKEN_LIFETIME_IN_S =
@@ -163,21 +166,29 @@ public class CrtAuthServer {
    * Create a challenge to authenticate a given user. The userName needs to be provided at this
    * stage to encode a fingerprint of the public key stored in the server encoded in the challenge.
    * This is required because a client can hold more than one private key and would need this
-   * information to pick the right key to sign the response.
+   * information to pick the right key to sign the response. If the keyProvider fails to retrieve
+   * the public key, a fake Fingerprint is generated so that the presence of a challenge doesn't
+   * reveal whether a user key is present on the server or not.
    *
    * @param userName The username of the user to be authenticated, in the format required by
    *    KeyProvider instances
    *
-   * @return A challenge wrapped in a verifiable message, to be processed by the client.
-   * @throws KeyNotFoundException when the public key for the requesting user is not available.
+   * @return A challenge message.
    */
-  public String createChallenge(String userName) throws KeyNotFoundException {
-    RSAPublicKey key = keyProvider.getKey(userName);
+  public String createChallenge(String userName) {
+    Fingerprint fingerprint;
+    try {
+      fingerprint = new Fingerprint(keyProvider.getKey(userName));
+    } catch (KeyNotFoundException e) {
+      log.info("No public key found for user {}, creating fake fingerprint", userName);
+      fingerprint = createFakeFingerprint(userName);
+    }
+
     byte[] uniqueData = new byte[Challenge.UNIQUE_DATA_LENGTH];
     UnsignedInteger timeNow = timeSupplier.getTime();
     random.nextBytes(uniqueData);
     Challenge challenge = Challenge.newBuilder()
-        .setFingerprint(new Fingerprint(key))
+        .setFingerprint(fingerprint)
         .setUniqueData(uniqueData)
         .setValidFromTimestamp(timeNow.minus(CLOCK_FUDGE))
         .setValidToTimestamp(timeNow.plus(RESPONSE_TIMEOUT))
@@ -189,6 +200,18 @@ public class CrtAuthServer {
     } catch (SerializationException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * Generate a fake real looking fingerprint for a nonexistant user.
+   *
+   * @param userName the username to seed the transform with
+   * @return a Fingerprint with bytes that are a function of username and secret
+   */
+  private Fingerprint createFakeFingerprint(String userName) {
+    byte[] usernameHmac = CrtAuthCodec.getAuthenticationCode(
+        this.secret, userName.getBytes(Charsets.UTF_8));
+    return new Fingerprint(Arrays.copyOfRange(usernameHmac, 0, 6));
   }
 
   /**
