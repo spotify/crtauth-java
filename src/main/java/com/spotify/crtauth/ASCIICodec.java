@@ -25,7 +25,7 @@ public class ASCIICodec {
   private static BaseEncoding encoding = BaseEncoding.base64Url();
 
   public static String encode(byte[] data) {
-    return encoding.encode(data);
+    return encoding.encode(data).replaceAll("=", "");
   }
 
   public static byte[] decode(String encoded) {
