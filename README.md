@@ -16,6 +16,10 @@ The initial use case is to create a convenient authentication for command line
 tools that interacts with a central server without resorting to authentication
 using a shared secret, such as a password.
 
+If you are looking at building a client in java and would like to connect to a local
+ssh-agent, code that implements this is available in the 
+[crtauth-java-agent-signer](https://github.com/spotify/crtauth-java-agent-signer) project.   
+
 License
 -------
 
