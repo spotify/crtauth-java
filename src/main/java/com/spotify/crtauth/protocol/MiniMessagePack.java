@@ -140,7 +140,7 @@ class MiniMessagePack {
 
     private final DataInputStream dataInputStream;
     private final ByteArrayInputStream byteArrayInputStream;
-    int dataSize;
+    final int dataSize;
 
     public Unpacker(byte[] data) {
       byteArrayInputStream = new ByteArrayInputStream(data);

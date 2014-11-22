@@ -86,7 +86,6 @@ public class CrtAuthServerTest {
   private InMemoryKeyProvider keyProvider;
   private CrtAuthServer crtAuthServer;
   private CrtAuthClient crtAuthClient;
-  private Signer signer;
 
   @Before
   public void setup() throws Exception {
@@ -105,7 +104,7 @@ public class CrtAuthServerTest {
         .build();
     RSAPrivateKeySpec privateKeySpec = TraditionalKeyParser.parsePemPrivateKey(PRIVATE_KEY);
     PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
-    signer = new SingleKeySigner(privateKey);
+    Signer signer = new SingleKeySigner(privateKey);
     crtAuthClient = new CrtAuthClient(signer, SERVER_NAME);
   }
 

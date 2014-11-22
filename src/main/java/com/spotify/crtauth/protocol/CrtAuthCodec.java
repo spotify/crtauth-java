@@ -109,10 +109,6 @@ public class CrtAuthCodec {
     );
   }
 
-  public static Token deserializeToken(byte[] data) throws DeserializationException {
-    return doDeserializeToken(new MiniMessagePack.Unpacker(data));
-  }
-
   public static Token deserializeTokenAuthenticated(byte[] data, byte[] hmac_secret)
       throws DeserializationException, InvalidInputException {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
@@ -200,10 +196,11 @@ public class CrtAuthCodec {
   }
 
   /**
+   * Deserialize an ASCII encoded request messages and return the username string it encodes.
+   * Also verifies that the type magic value matches and that the version equals 1.
    *
-   *
-   * @param request
-   * @return
+   * @param request the ASCII encoded request String
+   * @return the username encoded in the String
    */
   public static String deserializeRequest(String request) throws DeserializationException {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(ASCIICodec.decode(request));

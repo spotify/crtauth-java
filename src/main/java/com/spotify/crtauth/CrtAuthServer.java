@@ -142,21 +142,9 @@ public class CrtAuthServer {
     }
   }
 
-  /**
-   * Constructor. The use of a builder is preferred as it provides sensible defaults for most
-   * parameters.
-   *
-   * @param tokenLifetimeInS The time span over which a token is valid, in seconds.
-   * @param serverName       The authentication server's name, preferably its fully qualified domain name.
-   * @param keyProvider
-   * @param timeSupplier     An implementation of the {@code TimeSupplier} interface, used internally
-   *                         as a time reference. Use {@code RealTimeSupplier}
-   * @param random           A source of randomness.
-   * @param secret           A byte array that represents the server secret. Used as part of Hash-based
-   *                         message authentication codes to verify the source of requests.
-   */
-  public CrtAuthServer(UnsignedInteger tokenLifetimeInS, String serverName, KeyProvider keyProvider,
-                       TimeSupplier timeSupplier, Random random, byte[] secret) {
+  private CrtAuthServer(UnsignedInteger tokenLifetimeInS, String serverName,
+                        KeyProvider keyProvider, TimeSupplier timeSupplier, Random random,
+                        byte[] secret) {
     this.tokenLifetimeInS = tokenLifetimeInS;
     this.serverName = serverName;
     this.keyProvider = keyProvider;
@@ -179,7 +167,7 @@ public class CrtAuthServer {
    */
   public String createChallenge(String request) throws InvalidInputException {
 
-    String userName = null;
+    String userName;
     try {
       userName = CrtAuthCodec.deserializeRequest(request);
     } catch (DeserializationException e) {
