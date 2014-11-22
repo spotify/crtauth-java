@@ -75,7 +75,7 @@ public class CrtAuthClientTest {
   private CrtAuthServer crtAuthServer;
   private Signer signer;
 
-  private static KeyFactory keyFactory;
+  private static final KeyFactory keyFactory;
 
   static {
     try {
@@ -94,7 +94,7 @@ public class CrtAuthClientTest {
     }
   }
 
-  public static RSAPublicKey getPublicKey() {
+  private static RSAPublicKey getPublicKey() {
     try {
       RSAPublicKeySpec publicKeySpec = TraditionalKeyParser.parsePemPublicKey(PUBLIC_KEY);
       return  (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
