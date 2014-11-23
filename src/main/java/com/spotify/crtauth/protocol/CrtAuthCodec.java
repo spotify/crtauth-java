@@ -16,12 +16,11 @@
 
 package com.spotify.crtauth.protocol;
 
-import com.spotify.crtauth.ASCIICodec;
 import com.spotify.crtauth.Fingerprint;
-import com.spotify.crtauth.exceptions.DeserializationException;
-import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.ProtocolVersionException;
-import com.spotify.crtauth.exceptions.SerializationException;
+import com.spotify.crtauth.utils.ASCIICodec;
+
+import java.util.Arrays;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
@@ -48,10 +47,8 @@ public class CrtAuthCodec {
    * @param challenge the challenge to serialize
    * @param hmac_secret the secret used to generate the HMAC field
    * @return an array of bytes representing the provided Challenge
-   * @throws SerializationException if serialization failed
    */
-  public static byte[] serialize(Challenge challenge, byte[] hmac_secret)
-      throws SerializationException {
+  public static byte[] serialize(Challenge challenge, byte[] hmac_secret) {
     MiniMessagePack.Packer packer = new MiniMessagePack.Packer();
     packer.pack(VERSION);
     packer.pack(CHALLENGE_MAGIC);
@@ -67,17 +64,22 @@ public class CrtAuthCodec {
     return packer.getBytes();
   }
 
-  public static Challenge deserializeChallenge(byte[] data) throws DeserializationException {
+  public static Challenge deserializeChallenge(byte[] data)
+      throws IllegalArgumentException, ProtocolVersionException {
     return doDeserializeChallenge(new MiniMessagePack.Unpacker(data));
   }
 
   public static Challenge deserializeChallengeAuthenticated(byte[] data, byte[] hmac_secret)
-      throws DeserializationException, InvalidInputException {
+      throws IllegalArgumentException, ProtocolVersionException {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
     Challenge c = doDeserializeChallenge(unpacker);
     byte[] digest = getAuthenticationCode(hmac_secret, data, unpacker.getBytesRead());
-    if (!constantTimeEquals(digest, unpacker.unpackBin())) {
-      throw new InvalidInputException("HMAC validation failed");
+    try {
+      if (!Arrays.equals(digest, unpacker.unpackBin())) {
+        throw new IllegalArgumentException("HMAC validation failed");
+      }
+    } catch (DeserializationException e) {
+      throw new IllegalArgumentException(e.getMessage());
     }
     return c;
   }
@@ -87,9 +89,8 @@ public class CrtAuthCodec {
    *
    * @param response the Response to serialize.
    * @return an array of bytes representing the provided Response
-   * @throws SerializationException
    */
-  public static byte[] serialize(Response response) throws SerializationException {
+  public static byte[] serialize(Response response) {
     MiniMessagePack.Packer packer = new MiniMessagePack.Packer();
     packer.pack(VERSION);
     packer.pack(RESPONSE_MAGIC);
@@ -99,27 +100,36 @@ public class CrtAuthCodec {
   }
 
   public static Response deserializeResponse(byte[] data)
-      throws DeserializationException, InvalidInputException {
+      throws IllegalArgumentException, ProtocolVersionException {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
-    parseVersionMagic(RESPONSE_MAGIC, unpacker);
-    return new Response(
-        unpacker.unpackBin(), // challenge
-        unpacker.unpackBin()  // signature
-    );
+    try {
+      parseVersionMagic(RESPONSE_MAGIC, unpacker);
+      return new Response(
+          unpacker.unpackBin(), // challenge
+          unpacker.unpackBin()  // signature
+      );
+    } catch (DeserializationException e) {
+      throw new IllegalArgumentException(e.getMessage());
+    }
   }
 
   public static Token deserializeTokenAuthenticated(byte[] data, byte[] hmac_secret)
-      throws DeserializationException, InvalidInputException {
+      throws IllegalArgumentException, ProtocolVersionException {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
-    Token c = doDeserializeToken(unpacker);
-    byte[] digest = getAuthenticationCode(hmac_secret, data, unpacker.getBytesRead());
-    if (!constantTimeEquals(digest, unpacker.unpackBin())) {
-      throw new InvalidInputException("HMAC validation failed");
+    try {
+      Token token = doDeserializeToken(unpacker);
+      byte[] digest = getAuthenticationCode(hmac_secret, data, unpacker.getBytesRead());
+      if (!Arrays.equals(digest, unpacker.unpackBin())) {
+        throw new IllegalArgumentException("HMAC validation failed");
+      }
+      return token;
+    } catch (DeserializationException e) {
+      throw new IllegalArgumentException(e.getMessage());
     }
-    return c;
+
   }
 
-  public static byte[] serialize(Token token, byte[] hmac_secret) throws SerializationException {
+  public static byte[] serialize(Token token, byte[] hmac_secret) {
     MiniMessagePack.Packer packer = new MiniMessagePack.Packer();
     packer.pack((byte) 0x01);
     packer.pack(TOKEN_MAGIC);
@@ -132,7 +142,8 @@ public class CrtAuthCodec {
 
 
   private static Challenge doDeserializeChallenge(MiniMessagePack.Unpacker unpacker)
-      throws DeserializationException {
+      throws IllegalArgumentException, ProtocolVersionException {
+    try {
     parseVersionMagic(CHALLENGE_MAGIC, unpacker);
     return new Challenge(
         unpacker.unpackBin(),                  // unique data
@@ -142,15 +153,23 @@ public class CrtAuthCodec {
         unpacker.unpackString(),               // serverName
         unpacker.unpackString()                // username
     );
+    } catch (DeserializationException e) {
+      throw new IllegalArgumentException(e);
+    }
   }
 
-  private static Token doDeserializeToken(MiniMessagePack.Unpacker unpacker) throws DeserializationException {
-    parseVersionMagic(TOKEN_MAGIC, unpacker);
-    return new Token(
-        unpacker.unpackInt(),   // validFrom
-        unpacker.unpackInt(),   // validTo
-        unpacker.unpackString() // userName
-    );
+  private static Token doDeserializeToken(MiniMessagePack.Unpacker unpacker)
+      throws IllegalArgumentException, ProtocolVersionException {
+    try {
+      parseVersionMagic(TOKEN_MAGIC, unpacker);
+      return new Token(
+          unpacker.unpackInt(),   // validFrom
+          unpacker.unpackInt(),   // validTo
+          unpacker.unpackString() // userName
+      );
+    } catch (DeserializationException e) {
+      throw new IllegalArgumentException(e);
+    }
   }
 
   /**
@@ -162,7 +181,6 @@ public class CrtAuthCodec {
    * @param length the number of bytes from data to use when calculating the HMAC
    * @return an HMAC code for the specified data and secret
    */
-
   private static byte[] getAuthenticationCode(byte[] secret, byte[] data, int length) {
     try {
       SecretKey secretKey = new SecretKeySpec(secret, MAC_ALGORITHM);
@@ -201,14 +219,20 @@ public class CrtAuthCodec {
    * @param request the ASCII encoded request String
    * @return the username encoded in the String
    */
-  public static String deserializeRequest(String request) throws DeserializationException {
+  public static String deserializeRequest(String request)
+      throws IllegalArgumentException, ProtocolVersionException {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(ASCIICodec.decode(request));
-    parseVersionMagic(REQUEST_MAGIC, unpacker);
-    return unpacker.unpackString();
+    try {
+      parseVersionMagic(REQUEST_MAGIC, unpacker);
+      return unpacker.unpackString();
+    } catch (DeserializationException e) {
+      throw new IllegalArgumentException(e.getMessage());
+    }
+
   }
 
   private static void parseVersionMagic(byte magic, MiniMessagePack.Unpacker unpacker)
-      throws DeserializationException {
+      throws ProtocolVersionException, DeserializationException {
 
     byte version = unpacker.unpackByte();
     if (version != (byte) 0x01) {
@@ -227,25 +251,5 @@ public class CrtAuthCodec {
       throw new DeserializationException(String.format(
           "invalid magic byte, expected %d but got %d", readMagic, magic));
     }
-  }
-
- /**
-   * Checks if byte arrays a and be are equal in an algorithm that runs in
-   * constant time provided that their lengths are equal.
-   *
-   * @param a the first byte array
-   * @param b the second byte array
-   * @return true if a and be are equal, else false
-   */
-  private static boolean constantTimeEquals(byte[] a, byte[] b) {
-    if (a.length != b.length) {
-      return false;
-    }
-
-    int result = 0;
-    for (int i = 0; i < a.length; i++) {
-      result |= a[i] ^ b[i];
-    }
-    return result == 0;
   }
 }

@@ -17,12 +17,11 @@
 package com.spotify.crtauth.protocol;
 
 import com.google.common.primitives.UnsignedInteger;
-import com.spotify.crtauth.ASCIICodec;
 import com.spotify.crtauth.CrtAuthClientTest;
 import com.spotify.crtauth.Fingerprint;
-import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
+import com.spotify.crtauth.utils.ASCIICodec;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -113,7 +112,7 @@ public class CrtAuthCodecTest {
     assertEquals(TOKEN, token);
   }
 
-  @Test(expected = InvalidInputException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testDeserializeAuthenticatedTokenCorrupt() throws Exception {
     byte[] mine = Arrays.copyOf(
         CrtAuthCodecTest.ENCODED_TOKEN, CrtAuthCodecTest.ENCODED_TOKEN.length);
@@ -121,7 +120,7 @@ public class CrtAuthCodecTest {
     CrtAuthCodec.deserializeTokenAuthenticated(mine, "gurkburk".getBytes());
   }
 
-  @Test(expected = InvalidInputException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testDeserializeAuthenticatedChallengeCorrupt() throws Exception {
     byte[] mine = Arrays.copyOf(
         CrtAuthCodecTest.ENCODED_CHALLENGE, CrtAuthCodecTest.ENCODED_CHALLENGE.length);

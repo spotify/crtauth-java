@@ -21,14 +21,16 @@
 
 package com.spotify.crtauth;
 
-import com.spotify.crtauth.exceptions.DeserializationException;
-import com.spotify.crtauth.exceptions.InvalidInputException;
+import com.spotify.crtauth.exceptions.ProtocolVersionException;
+import com.spotify.crtauth.exceptions.TokenExpiredException;
 import com.spotify.crtauth.keyprovider.InMemoryKeyProvider;
 import com.spotify.crtauth.protocol.CrtAuthCodec;
 import com.spotify.crtauth.protocol.Token;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
+import com.spotify.crtauth.utils.ASCIICodec;
 import com.spotify.crtauth.utils.TraditionalKeyParser;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,9 +41,10 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 
-import static com.spotify.crtauth.ASCIICodec.decode;
-import static com.spotify.crtauth.ASCIICodec.encode;
+import static com.spotify.crtauth.utils.ASCIICodec.decode;
+import static com.spotify.crtauth.utils.ASCIICodec.encode;
 
+@SuppressWarnings("SpellCheckingInspection")
 public class CrtAuthServerTest {
   private static final String NOA_PUBLIC_KEY =
       "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEArt7xdaxlbzzGlgLhqpLuE5x9d+so0M" +
@@ -134,11 +137,11 @@ public class CrtAuthServerTest {
     CrtAuthCodec.deserializeChallenge(ASCIICodec.decode(encodedChallenge));
   }
 
-  private Fingerprint extractFingerprint(String challenge) throws DeserializationException {
+  private Fingerprint extractFingerprint(String challenge) throws ProtocolVersionException {
     return CrtAuthCodec.deserializeChallenge(decode(challenge)).getFingerprint();
   }
 
-  @Test(expected = InvalidInputException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testMitm() throws Exception {
     CrtAuthServer otherOuthServer = new CrtAuthServer.Builder()
         .setServerName("another_server")
@@ -150,7 +153,7 @@ public class CrtAuthServerTest {
     otherOuthServer.createToken(response);
   }
 
-  @Test(expected = InvalidInputException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testWrongSecret() throws Exception {
     CrtAuthServer otherServer = new CrtAuthServer.Builder()
         .setServerName("SERVER_NAME")
@@ -170,7 +173,7 @@ public class CrtAuthServerTest {
     crtAuthServer.validateToken(ts);
   }
 
-  @Test(expected = InvalidInputException.class)
+  @Test(expected = TokenExpiredException.class)
   public void testExpiredToken() throws Exception {
     int nowSeconds = (int) (System.currentTimeMillis() / 1000);
     Token t = new Token(nowSeconds - 1000, nowSeconds - 950, "test");
@@ -178,7 +181,7 @@ public class CrtAuthServerTest {
     crtAuthServer.validateToken(ts);
   }
 
-  @Test(expected = InvalidInputException.class)
+  @Test(expected = TokenExpiredException.class)
   public void testFutureToken() throws Exception {
     int nowSeconds = (int) (System.currentTimeMillis() / 1000);
     Token t = new Token(nowSeconds + 1000, nowSeconds + 1050, "test");
@@ -186,13 +189,11 @@ public class CrtAuthServerTest {
     crtAuthServer.validateToken(ts);
   }
 
-  @Test(expected = InvalidInputException.class)
+  @Test(expected = TokenExpiredException.class)
   public void testOverlyLongTokenValidity() throws Exception {
     int nowSeconds = (int) (System.currentTimeMillis() / 1000);
     Token t = new Token(nowSeconds, nowSeconds + 10000, "test");
     String ts = encode(CrtAuthCodec.serialize(t, "server_secret".getBytes()));
     crtAuthServer.validateToken(ts);
-
   }
-
 }

@@ -19,22 +19,21 @@
  * under the License.
  */
 
-package com.spotify.crtauth.exceptions;
+package com.spotify.crtauth.protocol;
 
-public class SignerException extends CrtAuthException {
-  public SignerException() {
-    super();
-  }
-
-  public SignerException(String message) {
+/**
+ * An internal exception thrown when deserialization fails.
+ */
+class DeserializationException extends Exception {
+  public DeserializationException(String message) {
     super(message);
   }
 
-  public SignerException(Throwable throwable) {
+  public DeserializationException(Throwable throwable) {
     super(throwable);
   }
 
-  public SignerException(String message, Throwable cause) {
+  public DeserializationException(String message, Throwable cause) {
     super(message, cause);
   }
 }
