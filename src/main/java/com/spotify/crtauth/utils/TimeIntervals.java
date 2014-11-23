@@ -28,10 +28,7 @@ public class TimeIntervals {
     UnsignedInteger currentUTime = timeSupplier.getTime();
     UnsignedInteger validUFrom = UnsignedInteger.fromIntBits(validFrom);
     UnsignedInteger validUTo = UnsignedInteger.fromIntBits(validTo);
-    if (validUFrom.compareTo(currentUTime) > 0 ||
-        validUTo.compareTo(currentUTime) < 0) {
-      return true;
-    }
-    return false;
+    return validUFrom.compareTo(currentUTime) > 0 ||
+        validUTo.compareTo(currentUTime) < 0;
   }
 }

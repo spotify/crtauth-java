@@ -20,7 +20,6 @@
  */
 package com.spotify.crtauth.protocol;
 
-import com.spotify.crtauth.exceptions.DeserializationException;
 import org.junit.Assert;
 import org.junit.Test;
 

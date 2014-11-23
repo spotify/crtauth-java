@@ -22,7 +22,6 @@ package com.spotify.crtauth.protocol;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteStreams;
-import com.spotify.crtauth.exceptions.DeserializationException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -121,7 +120,7 @@ class MiniMessagePack {
         }
         dataOutput.write(encoded);
       } catch (IOException e) {
-        throw new Error("Filed to write to buffer. Should not happen", e);
+        throw new RuntimeException("Filed to write to buffer. Should not happen", e);
       }
     }
 
@@ -140,7 +139,7 @@ class MiniMessagePack {
 
     private final DataInputStream dataInputStream;
     private final ByteArrayInputStream byteArrayInputStream;
-    int dataSize;
+    final int dataSize;
 
     public Unpacker(byte[] data) {
       byteArrayInputStream = new ByteArrayInputStream(data);
@@ -280,7 +279,7 @@ class MiniMessagePack {
      * @throws IOException if the read fails
      * @throws DeserializationException if end of file is reached
      */
-    private int readByte(InputStream inputStream) throws IOException, DeserializationException {
+    private static int readByte(InputStream inputStream) throws IOException, DeserializationException {
       final int i = inputStream.read();
       if (i == -1) {
         throw new DeserializationException("Attempted to read past end of buffer");
@@ -301,13 +300,4 @@ class MiniMessagePack {
       return dataSize - byteArrayInputStream.available();
     }
   }
-
-  /**
-   * Sometimes when you read an integer value you expect it to be a single byte. This helper
-   * method
-   *
-   * @param unpacker
-   * @return
-   * @throws DeserializationException
-   */
 }

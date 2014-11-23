@@ -19,10 +19,13 @@
  * under the License.
  */
 
-package com.spotify.crtauth.exceptions;
+package com.spotify.crtauth.protocol;
 
-public class IllegalAsciiString extends XdrException {
-  public IllegalAsciiString() {
-    super();
+/**
+ * An internal exception thrown when deserialization fails.
+ */
+class DeserializationException extends Exception {
+  public DeserializationException(String message) {
+    super(message);
   }
 }

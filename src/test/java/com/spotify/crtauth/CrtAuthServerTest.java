@@ -21,9 +21,9 @@
 
 package com.spotify.crtauth;
 
-import com.spotify.crtauth.exceptions.DeserializationException;
-import com.spotify.crtauth.exceptions.InvalidInputException;
+import com.spotify.crtauth.exceptions.ProtocolVersionException;
 import com.spotify.crtauth.keyprovider.InMemoryKeyProvider;
+import com.spotify.crtauth.utils.ASCIICodec;
 import com.spotify.crtauth.protocol.CrtAuthCodec;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
@@ -38,8 +38,9 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 
-import static com.spotify.crtauth.ASCIICodec.decode;
+import static com.spotify.crtauth.utils.ASCIICodec.decode;
 
+@SuppressWarnings("SpellCheckingInspection")
 public class CrtAuthServerTest {
   private static final String NOA_PUBLIC_KEY =
       "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEArt7xdaxlbzzGlgLhqpLuE5x9d+so0M" +
@@ -84,7 +85,6 @@ public class CrtAuthServerTest {
   private InMemoryKeyProvider keyProvider;
   private CrtAuthServer crtAuthServer;
   private CrtAuthClient crtAuthClient;
-  private Signer signer;
 
   @Before
   public void setup() throws Exception {
@@ -103,7 +103,7 @@ public class CrtAuthServerTest {
         .build();
     RSAPrivateKeySpec privateKeySpec = TraditionalKeyParser.parsePemPrivateKey(PRIVATE_KEY);
     PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
-    signer = new SingleKeySigner(privateKey);
+    Signer signer = new SingleKeySigner(privateKey);
     crtAuthClient = new CrtAuthClient(signer, SERVER_NAME);
   }
 
@@ -133,11 +133,11 @@ public class CrtAuthServerTest {
     CrtAuthCodec.deserializeChallenge(ASCIICodec.decode(encodedChallenge));
   }
 
-  private Fingerprint extractFingerprint(String challenge) throws DeserializationException {
+  private Fingerprint extractFingerprint(String challenge) throws ProtocolVersionException {
     return CrtAuthCodec.deserializeChallenge(decode(challenge)).getFingerprint();
   }
 
-  @Test(expected = InvalidInputException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testMitm() throws Exception {
     CrtAuthServer otherOuthServer = new CrtAuthServer.Builder()
         .setServerName("another_server")
@@ -149,7 +149,7 @@ public class CrtAuthServerTest {
     otherOuthServer.createToken(response);
   }
 
-  @Test(expected = InvalidInputException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testWrongSecret() throws Exception {
     CrtAuthServer otherServer = new CrtAuthServer.Builder()
         .setServerName("SERVER_NAME")

@@ -14,7 +14,7 @@
  * limitations under the License
  */
 
-package com.spotify.crtauth;
+package com.spotify.crtauth.utils;
 
 import com.google.common.io.BaseEncoding;
 
@@ -22,7 +22,7 @@ import com.google.common.io.BaseEncoding;
  * Utility class to encode and decode binary data in to URL compatible ASCII.
  */
 public class ASCIICodec {
-  private static BaseEncoding encoding = BaseEncoding.base64Url();
+  private static final BaseEncoding encoding = BaseEncoding.base64Url();
 
   public static String encode(byte[] data) {
     return encoding.encode(data).replaceAll("=", "");
