@@ -19,14 +19,13 @@
  * under the License.
  */
 
-package com.spotify.crtauth.exceptions;
+package com.spotify.crtauth.protocol;
 
-public class SerializationException extends CrtAuthException {
-  public SerializationException() {
-    super();
-  }
-
-  public SerializationException(Throwable cause) {
-    super(cause);
+/**
+ * An internal exception thrown when deserialization fails.
+ */
+class DeserializationException extends Exception {
+  public DeserializationException(String message) {
+    super(message);
   }
 }

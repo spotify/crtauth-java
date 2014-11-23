@@ -22,8 +22,8 @@
 package com.spotify.crtauth.protocol;
 
 import com.google.common.primitives.UnsignedInteger;
-import com.spotify.crtauth.ASCIICodec;
 import com.spotify.crtauth.Fingerprint;
+import com.spotify.crtauth.utils.ASCIICodec;
 import org.junit.Test;
 
 public class ChallengeTest {
