@@ -80,7 +80,7 @@ public class CrtAuthCodec {
     Challenge c = doDeserializeChallenge(unpacker);
     byte[] digest = getAuthenticationCode(hmacSecret, data, unpacker.getBytesRead());
     try {
-      if (!Arrays.equals(digest, unpacker.unpackBin())) {
+      if (!constantTimeEquals(digest, unpacker.unpackBin())) {
         throw new IllegalArgumentException("HMAC validation failed");
       }
     } catch (DeserializationException e) {
@@ -124,7 +124,7 @@ public class CrtAuthCodec {
     try {
       Token token = doDeserializeToken(unpacker);
       byte[] digest = getAuthenticationCode(hmacSecret, data, unpacker.getBytesRead());
-      if (!Arrays.equals(digest, unpacker.unpackBin())) {
+      if (!constantTimeEquals(digest, unpacker.unpackBin())) {
         throw new IllegalArgumentException("HMAC validation failed");
       }
       return token;
@@ -256,5 +256,25 @@ public class CrtAuthCodec {
       throw new DeserializationException(String.format(
           "invalid magic byte, expected %d but got %d", readMagic, magic));
     }
+  }
+
+ /**
+   * Checks if byte arrays a and be are equal in an algorithm that runs in
+   * constant time provided that their lengths are equal.
+   *
+   * @param a the first byte array
+   * @param b the second byte array
+   * @return true if a and be are equal, else false
+   */
+  private static boolean constantTimeEquals(byte[] a, byte[] b) {
+    if (a.length != b.length) {
+      return false;
+    }
+
+    int result = 0;
+    for (int i = 0; i < a.length; i++) {
+      result |= a[i] ^ b[i];
+    }
+    return result == 0;
   }
 }
