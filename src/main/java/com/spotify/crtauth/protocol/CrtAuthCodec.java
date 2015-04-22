@@ -77,7 +77,7 @@ public class CrtAuthCodec {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
     Challenge c = doDeserializeChallenge(unpacker);
     byte[] digest = getAuthenticationCode(hmac_secret, data, unpacker.getBytesRead());
-    if (!Arrays.equals(digest, unpacker.unpackBin())) {
+    if (!constantTimeEquals(digest, unpacker.unpackBin())) {
       throw new InvalidInputException("HMAC validation failed");
     }
     return c;
@@ -118,7 +118,7 @@ public class CrtAuthCodec {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
     Token c = doDeserializeToken(unpacker);
     byte[] digest = getAuthenticationCode(hmac_secret, data, unpacker.getBytesRead());
-    if (!Arrays.equals(digest, unpacker.unpackBin())) {
+    if (!constantTimeEquals(digest, unpacker.unpackBin())) {
       throw new InvalidInputException("HMAC validation failed");
     }
     return c;
@@ -233,5 +233,23 @@ public class CrtAuthCodec {
     }
   }
 
+ /**
+   * Checks if byte arrays a and be are equal in an algorithm that runs in
+   * constant time provided that their lengths are equal.
+   *
+   * @param a the first byte array
+   * @param b the second byte array
+   * @return true if a and be are equal, else false
+   */
+  private static boolean constantTimeEquals(byte[] a, byte[] b) {
+    if (a.length != b.length) {
+      return false;
+    }
 
+    int result = 0;
+    for (int i = 0; i < a.length; i++) {
+      result |= a[i] ^ b[i];
+    }
+    return result == 0;
+  }
 }
