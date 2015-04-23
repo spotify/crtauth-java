@@ -76,9 +76,8 @@ public abstract class SignerTest<T extends Signer> {
       "vwIDAQAB";
   private T instance;
   private RSAPublicKey publicKey;
-  private PrivateKey privateKey;
 
-  protected abstract T getInstance(KeyPair keyPair) throws Exception;
+  protected abstract T getInstance(KeyPair keyPair);
 
   @Before
   public void setup() throws Exception {
@@ -86,7 +85,7 @@ public abstract class SignerTest<T extends Signer> {
     BaseEncoding encoding = BaseEncoding.base64();
     byte[] privateKeyBytes = encoding.decode(PRIVATE_KEY_STRING);
     KeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
-    privateKey = keyFactory.generatePrivate(privateKeySpec);
+    PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
     byte[] publicKeyBytes = encoding.decode(PUBLIC_KEY_STRING);
     KeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
     publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);

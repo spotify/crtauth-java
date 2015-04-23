@@ -69,8 +69,7 @@ public class FileKeyProvider implements KeyProvider {
       byte[] keyBytes = Files.toByteArray(keyFile);
       String keyString = new String(keyBytes, Charsets.US_ASCII);
       RSAPublicKeySpec publicKeySpec = TraditionalKeyParser.parsePemPublicKey(keyString);
-      RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
-      return publicKey;
+      return (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
     } catch (Exception e) {
       throw new KeyNotFoundException(e);
     }
