@@ -25,6 +25,7 @@ import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.keyprovider.InMemoryKeyProvider;
 import com.spotify.crtauth.protocol.CrtAuthCodec;
+import com.spotify.crtauth.protocol.Token;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
 import com.spotify.crtauth.utils.TraditionalKeyParser;
@@ -39,6 +40,7 @@ import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 
 import static com.spotify.crtauth.ASCIICodec.decode;
+import static com.spotify.crtauth.ASCIICodec.encode;
 
 public class CrtAuthServerTest {
   private static final String NOA_PUBLIC_KEY =
@@ -160,4 +162,38 @@ public class CrtAuthServerTest {
     String response = crtAuthClient.createResponse(verifiableChallenge);
     otherServer.validateToken(crtAuthServer.createToken(response));
   }
+
+  @Test
+  public void testGoodToken() throws Exception {
+    int nowSeconds = (int) (System.currentTimeMillis() / 1000);
+    Token t = new Token(nowSeconds, nowSeconds + 10, "test");
+    String ts = encode(CrtAuthCodec.serialize(t, "server_secret".getBytes()));
+    crtAuthServer.validateToken(ts);
+  }
+
+  @Test(expected = InvalidInputException.class)
+  public void testExpiredToken() throws Exception {
+    int nowSeconds = (int) (System.currentTimeMillis() / 1000);
+    Token t = new Token(nowSeconds - 1000, nowSeconds - 950, "test");
+    String ts = encode(CrtAuthCodec.serialize(t, "server_secret".getBytes()));
+    crtAuthServer.validateToken(ts);
+  }
+
+  @Test(expected = InvalidInputException.class)
+  public void testFutureToken() throws Exception {
+    int nowSeconds = (int) (System.currentTimeMillis() / 1000);
+    Token t = new Token(nowSeconds + 1000, nowSeconds + 1050, "test");
+    String ts = encode(CrtAuthCodec.serialize(t, "server_secret".getBytes()));
+    crtAuthServer.validateToken(ts);
+  }
+
+  @Test(expected = InvalidInputException.class)
+  public void testOverlyLongTokenValidity() throws Exception {
+    int nowSeconds = (int) (System.currentTimeMillis() / 1000);
+    Token t = new Token(nowSeconds, nowSeconds + 10000, "test");
+    String ts = encode(CrtAuthCodec.serialize(t, "server_secret".getBytes()));
+    crtAuthServer.validateToken(ts);
+
+  }
+
 }
