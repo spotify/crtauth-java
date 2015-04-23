@@ -73,6 +73,9 @@ import static com.spotify.crtauth.ASCIICodec.encode;
 public class CrtAuthServer {
   private static final UnsignedInteger CLOCK_FUDGE = UnsignedInteger.fromIntBits(2);
   private static final UnsignedInteger RESPONSE_TIMEOUT = UnsignedInteger.fromIntBits(20);
+  // the maximum number of seconds the total duration of the validity of a token
+  // can be before the server rejects it as being too broad.
+  private static final int MAX_VALIDITY = 600;
   private static final String SIGNATURE_ALGORITHM = "SHA1withRSA";
   private final UnsignedInteger tokenLifetimeInS;
   private final String serverName;
@@ -136,23 +139,24 @@ public class CrtAuthServer {
           random.or(new Random()),
           secret
       );
-     }
+    }
   }
 
   /**
    * Constructor. The use of a builder is preferred as it provides sensible defaults for most
    * parameters.
+   *
    * @param tokenLifetimeInS The time span over which a token is valid, in seconds.
-   * @param serverName The authentication server's name, preferably its fully qualified domain name.
+   * @param serverName       The authentication server's name, preferably its fully qualified domain name.
    * @param keyProvider
-   * @param timeSupplier An implementation of the {@code TimeSupplier} interface, used internally
-   *    as a time reference. Use {@code RealTimeSupplier}
-   * @param random A source of randomness.
-   * @param secret A byte array that represents the server secret. Used as part of Hash-based
-   *    message authentication codes to verify the source of requests.
+   * @param timeSupplier     An implementation of the {@code TimeSupplier} interface, used internally
+   *                         as a time reference. Use {@code RealTimeSupplier}
+   * @param random           A source of randomness.
+   * @param secret           A byte array that represents the server secret. Used as part of Hash-based
+   *                         message authentication codes to verify the source of requests.
    */
   public CrtAuthServer(UnsignedInteger tokenLifetimeInS, String serverName, KeyProvider keyProvider,
-      TimeSupplier timeSupplier, Random random, byte[] secret) {
+                       TimeSupplier timeSupplier, Random random, byte[] secret) {
     this.tokenLifetimeInS = tokenLifetimeInS;
     this.serverName = serverName;
     this.keyProvider = keyProvider;
@@ -171,7 +175,6 @@ public class CrtAuthServer {
    * reveal whether a user key is present on the server or not.
    *
    * @param request The request message which contains an encoded username
-   *
    * @return A challenge message.
    */
   public String createChallenge(String request) throws InvalidInputException {
@@ -260,12 +263,12 @@ public class CrtAuthServer {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+    if (challenge.isExpired(timeSupplier)) {
+      throw new InvalidInputException("The challenge is out of its validity period");
+    }
     if (!signatureVerified) {
       throw new InvalidInputException("Client did not provide proof that it controls the secret " +
           "key.");
-    }
-    if (challenge.isExpired(timeSupplier)) {
-      throw new InvalidInputException("The challenge is out of its validity period");
     }
     UnsignedInteger validFrom = timeSupplier.getTime().minus(CLOCK_FUDGE);
     UnsignedInteger validTo = timeSupplier.getTime().plus(tokenLifetimeInS);
@@ -293,7 +296,12 @@ public class CrtAuthServer {
     } catch (DeserializationException e) {
       throw new InvalidInputException(String.format("failed deserialize token '%s'", token));
     }
-    deserializedToken.isExpired(timeSupplier);
+    if (deserializedToken.isExpired(timeSupplier)) {
+      throw new InvalidInputException("Token expired");
+    }
+    if (deserializedToken.getValidTo() - deserializedToken.getValidFrom() > MAX_VALIDITY) {
+      throw new InvalidInputException("Overly long token validity");
+    }
     return deserializedToken.getUserName();
   }
 }
