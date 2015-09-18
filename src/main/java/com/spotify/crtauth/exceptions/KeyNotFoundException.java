@@ -26,6 +26,10 @@ public class KeyNotFoundException extends CrtAuthException {
     super();
   }
 
+  public KeyNotFoundException(String message) {
+    super(message);
+  }
+
   public KeyNotFoundException(Throwable throwable) {
     super(throwable);
   }
