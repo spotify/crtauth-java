@@ -22,15 +22,15 @@ import com.google.common.io.BaseEncoding;
  * Utility class to encode and decode binary data in to URL compatible ASCII.
  */
 public class ASCIICodec {
-  private static final BaseEncoding encoding = BaseEncoding.base64Url();
+  private static final BaseEncoding ENCODING = BaseEncoding.base64Url();
 
   public static String encode(byte[] data) {
-    return encoding.encode(data).replaceAll("=", "");
+    return ENCODING.encode(data).replaceAll("=", "");
   }
 
   public static byte[] decode(String encoded) {
     try {
-      return encoding.decode(encoded);
+      return ENCODING.decode(encoded);
     } catch (IllegalArgumentException e) {
       Throwable t = e;
       if (e.getCause() instanceof BaseEncoding.DecodingException) {

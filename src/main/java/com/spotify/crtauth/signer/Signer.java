@@ -40,6 +40,6 @@ public interface Signer {
    * @throws SignerException If the signer can't produce a valid signature.
    *
    */
-  public byte[] sign(byte[] data, Fingerprint fingerprint)
+  byte[] sign(byte[] data, Fingerprint fingerprint)
       throws SignerException, KeyNotFoundException;
 }

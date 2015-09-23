@@ -22,6 +22,7 @@
 package com.spotify.crtauth.protocol;
 
 import com.google.common.base.Preconditions;
+
 import com.spotify.crtauth.utils.TimeIntervals;
 import com.spotify.crtauth.utils.TimeSupplier;
 

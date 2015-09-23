@@ -17,16 +17,15 @@
 package com.spotify.crtauth.protocol;
 
 import com.spotify.crtauth.ASCIICodec;
+import com.spotify.crtauth.Fingerprint;
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.ProtocolVersionException;
 import com.spotify.crtauth.exceptions.SerializationException;
-import com.spotify.crtauth.Fingerprint;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.util.Arrays;
 
 /**
  * This class is used to encode and decode the different messages of the crtauth protocol between

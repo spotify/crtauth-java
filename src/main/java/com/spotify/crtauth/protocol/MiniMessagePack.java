@@ -22,6 +22,7 @@ package com.spotify.crtauth.protocol;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteStreams;
+
 import com.spotify.crtauth.exceptions.DeserializationException;
 
 import java.io.ByteArrayInputStream;

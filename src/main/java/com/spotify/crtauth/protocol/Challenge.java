@@ -22,6 +22,7 @@
 package com.spotify.crtauth.protocol;
 
 import com.google.common.primitives.UnsignedInteger;
+
 import com.spotify.crtauth.Fingerprint;
 import com.spotify.crtauth.utils.TimeIntervals;
 import com.spotify.crtauth.utils.TimeSupplier;
@@ -39,9 +40,6 @@ public class Challenge {
   private final Fingerprint fingerprint;
   private final String serverName;
   private final String userName;
-
-
-
 
   public static class Builder {
     private byte[] uniqueData;

@@ -23,6 +23,7 @@ package com.spotify.crtauth.keyprovider;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+
 import com.spotify.crtauth.exceptions.KeyNotFoundException;
 import com.spotify.crtauth.utils.TraditionalKeyParser;
 

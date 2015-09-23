@@ -24,6 +24,7 @@ package com.spotify.crtauth.utils;
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
+
 import com.spotify.crtauth.exceptions.InvalidInputException;
 
 import java.math.BigInteger;

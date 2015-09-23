@@ -24,6 +24,7 @@ package com.spotify.crtauth;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
+
 import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.KeyNotFoundException;
@@ -36,6 +37,7 @@ import com.spotify.crtauth.protocol.Response;
 import com.spotify.crtauth.protocol.Token;
 import com.spotify.crtauth.utils.RealTimeSupplier;
 import com.spotify.crtauth.utils.TimeSupplier;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -167,7 +169,7 @@ public class CrtAuthServer {
    */
   public String createChallenge(String request) throws InvalidInputException {
 
-    String userName;
+    final String userName;
     try {
       userName = CrtAuthCodec.deserializeRequest(request);
     } catch (DeserializationException e) {
@@ -242,7 +244,7 @@ public class CrtAuthServer {
       // should have already been sent, which in turn requires knowledge of the user's public key.
       throw new InvalidInputException(e);
     }
-    boolean signatureVerified = false;
+    boolean signatureVerified;
     try {
       Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
       signature.initVerify(publicKey);

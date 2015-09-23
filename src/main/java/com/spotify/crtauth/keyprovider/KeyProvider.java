@@ -37,5 +37,5 @@ public interface KeyProvider {
    * the key for a given user is not available or because a key for the given user is available
    * but it cannot be recognized as a valid public key.
    */
-  public RSAPublicKey getKey(String username) throws KeyNotFoundException;
+  RSAPublicKey getKey(String username) throws KeyNotFoundException;
 }

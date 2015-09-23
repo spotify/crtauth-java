@@ -31,5 +31,5 @@ public interface TimeSupplier {
    * Return the time, as the number of seconds elapsed from the Epoch.
    * @return the number of seconds from the Epoch, as an unsigned integer.
    */
-  public UnsignedInteger getTime();
+  UnsignedInteger getTime();
 }
