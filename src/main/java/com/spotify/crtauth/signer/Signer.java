@@ -23,7 +23,6 @@ package com.spotify.crtauth.signer;
 
 import com.spotify.crtauth.Fingerprint;
 import com.spotify.crtauth.exceptions.KeyNotFoundException;
-import com.spotify.crtauth.exceptions.SignerException;
 
 /**
  * This interface wraps a single method to sign a challenge. It's the core component of the
@@ -37,9 +36,8 @@ public interface Signer {
    *
    * @param data Some data to sign, typically a serialized challenge
    * @return A signature, as a byte array.
-   * @throws SignerException If the signer can't produce a valid signature.
    *
    */
   byte[] sign(byte[] data, Fingerprint fingerprint)
-      throws SignerException, KeyNotFoundException;
+      throws IllegalArgumentException, KeyNotFoundException;
 }

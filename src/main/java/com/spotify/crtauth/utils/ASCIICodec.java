@@ -14,7 +14,7 @@
  * limitations under the License
  */
 
-package com.spotify.crtauth;
+package com.spotify.crtauth.utils;
 
 import com.google.common.io.BaseEncoding;
 

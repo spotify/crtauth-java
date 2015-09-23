@@ -25,8 +25,6 @@ import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 
-import com.spotify.crtauth.exceptions.InvalidInputException;
-
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -87,7 +85,7 @@ public class TraditionalKeyParser {
     List<byte[]> fields;
     try {
       fields = parsePrivateKeyASN1(ByteBuffer.wrap(derKey));
-    } catch (InvalidInputException e) {
+    } catch (IllegalArgumentException e) {
       throw new InvalidKeyException(e);
     }
     BigInteger mod = new BigInteger(fields.get(1));
@@ -100,8 +98,7 @@ public class TraditionalKeyParser {
    * @param byteBuffer the raw byte representation of a Pcks1 private key.
    * @return A list of bytes array that represent the content of the original ASN.1 collection.
    */
-  private static List<byte[]> parsePrivateKeyASN1(ByteBuffer byteBuffer)
-      throws InvalidInputException {
+  private static List<byte[]> parsePrivateKeyASN1(ByteBuffer byteBuffer) {
     final List<byte[]> collection = new ArrayList<byte[]>();
     while (byteBuffer.hasRemaining()) {
       byte type = byteBuffer.get();
@@ -115,7 +112,7 @@ public class TraditionalKeyParser {
         }
       }
       if (length < 0) {
-        throw new InvalidInputException();
+        throw new IllegalArgumentException();
       }
       if (type == 0x30) {
         int position = byteBuffer.position();

@@ -20,7 +20,7 @@ package com.spotify.crtauth.exceptions;
  * This Exception is thrown when processing an incoming message that generated with a version
  * of the crtauth protocol that is unsupported by this library.
  */
-public class ProtocolVersionException extends DeserializationException {
+public class ProtocolVersionException extends CrtAuthException {
 
   public ProtocolVersionException(String message) {
     super(message);

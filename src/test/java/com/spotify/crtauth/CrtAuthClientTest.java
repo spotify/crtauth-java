@@ -21,7 +21,6 @@
 
 package com.spotify.crtauth;
 
-import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.keyprovider.InMemoryKeyProvider;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
@@ -124,7 +123,7 @@ public class CrtAuthClientTest {
     crtAuthServer.validateToken(verifiableToken);
   }
 
-  @Test(expected = InvalidInputException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testMitm() throws Exception {
     String verifiableChallenge = crtAuthServer.createChallenge(CrtAuthClient.createRequest("test"));
     CrtAuthClient crtAuthClient = new CrtAuthClient(signer, "another_server");

@@ -25,10 +25,8 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 
-import com.spotify.crtauth.exceptions.DeserializationException;
-import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.KeyNotFoundException;
-import com.spotify.crtauth.exceptions.SerializationException;
+import com.spotify.crtauth.exceptions.ProtocolVersionException;
 import com.spotify.crtauth.exceptions.TokenExpiredException;
 import com.spotify.crtauth.keyprovider.KeyProvider;
 import com.spotify.crtauth.protocol.Challenge;
@@ -48,8 +46,8 @@ import java.util.Random;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.spotify.crtauth.ASCIICodec.decode;
-import static com.spotify.crtauth.ASCIICodec.encode;
+import static com.spotify.crtauth.utils.ASCIICodec.decode;
+import static com.spotify.crtauth.utils.ASCIICodec.encode;
 
 /**
  * Instances of this class implements the server part of an crtauth authentication interaction.
@@ -76,7 +74,7 @@ public class CrtAuthServer {
   private static final UnsignedInteger CLOCK_FUDGE = UnsignedInteger.fromIntBits(2);
   private static final UnsignedInteger RESPONSE_TIMEOUT = UnsignedInteger.fromIntBits(20);
   // the maximum number of seconds the total duration of the validity of a token
-  // can be before the server rejects it as being too broad.
+  // can be before the server rejec  private static final int MAX_VALIDITY = 600;
   private static final int MAX_VALIDITY = 600;
   private static final String SIGNATURE_ALGORITHM = "SHA1withRSA";
   private final UnsignedInteger tokenLifetimeInS;
@@ -165,16 +163,15 @@ public class CrtAuthServer {
    * reveal whether a user key is present on the server or not.
    *
    * @param request The request message which contains an encoded username
+   * @throws IllegalArgumentException if the request format is invalid
+   *
    * @return A challenge message.
    */
-  public String createChallenge(String request) throws InvalidInputException {
+  public String createChallenge(String request)
+      throws IllegalArgumentException, ProtocolVersionException {
 
-    final String userName;
-    try {
-      userName = CrtAuthCodec.deserializeRequest(request);
-    } catch (DeserializationException e) {
-      throw new InvalidInputException(e);
-    }
+    String userName;
+    userName = CrtAuthCodec.deserializeRequest(request);
 
     Fingerprint fingerprint;
     try {
@@ -195,15 +192,12 @@ public class CrtAuthServer {
         .setServerName(serverName)
         .setUserName(userName)
         .build();
-    try {
-      return encode(CrtAuthCodec.serialize(challenge, secret));
-    } catch (SerializationException e) {
-      throw new RuntimeException(e);
-    }
+
+    return encode(CrtAuthCodec.serialize(challenge, secret));
   }
 
   /**
-   * Generate a fake real looking fingerprint for a nonexistant user.
+   * Generate a fake real looking fingerprint for a non-existent user.
    *
    * @param userName the username to seed the transform with
    * @return a Fingerprint with bytes that are a function of username and secret
@@ -219,21 +213,18 @@ public class CrtAuthServer {
    *
    * @param response The client's response to the initial challenge.
    * @return A token used to authenticate subsequent requests.
-   * @throws InvalidInputException
+   * @throws IllegalArgumentException if there is an encoding error in the response message
    */
-  public String createToken(String response) throws InvalidInputException {
+  public String createToken(String response)
+      throws IllegalArgumentException, ProtocolVersionException {
     final Response decodedResponse;
     final Challenge challenge;
-    try {
-      decodedResponse = CrtAuthCodec.deserializeResponse(decode(response));
-      challenge = CrtAuthCodec.deserializeChallengeAuthenticated(
-          decodedResponse.getPayload(), secret);
-    } catch (DeserializationException e) {
-      throw new InvalidInputException(e);
-    }
+    decodedResponse = CrtAuthCodec.deserializeResponse(decode(response));
+    challenge = CrtAuthCodec.deserializeChallengeAuthenticated(
+        decodedResponse.getPayload(), secret);
 
     if (!challenge.getServerName().equals(serverName)) {
-      throw new InvalidInputException("Got challenge with the wrong server_name encoded.");
+      throw new IllegalArgumentException("Got challenge with the wrong server_name encoded.");
     }
     PublicKey publicKey;
     try {
@@ -242,7 +233,7 @@ public class CrtAuthServer {
       // If the user requesting authentication doesn't have a public key,  we throw an
       // InvalidInputException. This normally shouldn't happen, since at this stage a challenge
       // should have already been sent, which in turn requires knowledge of the user's public key.
-      throw new InvalidInputException(e);
+      throw new IllegalArgumentException(e);
     }
     boolean signatureVerified;
     try {
@@ -254,20 +245,16 @@ public class CrtAuthServer {
       throw new RuntimeException(e);
     }
     if (challenge.isExpired(timeSupplier)) {
-      throw new InvalidInputException("The challenge is out of its validity period");
+      throw new IllegalArgumentException("The challenge is out of its validity period");
     }
     if (!signatureVerified) {
-      throw new InvalidInputException("Client did not provide proof that it controls the secret " +
-          "key.");
+      throw new IllegalArgumentException("Client did not provide proof that it controls the " +
+          "secret key.");
     }
     UnsignedInteger validFrom = timeSupplier.getTime().minus(CLOCK_FUDGE);
     UnsignedInteger validTo = timeSupplier.getTime().plus(tokenLifetimeInS);
     Token token = new Token(validFrom.intValue(), validTo.intValue(), challenge.getUserName());
-    try {
-      return encode(CrtAuthCodec.serialize(token, secret));
-    } catch (SerializationException e) {
-      throw new RuntimeException(e);
-    }
+    return encode(CrtAuthCodec.serialize(token, secret));
   }
 
   /**
@@ -276,21 +263,18 @@ public class CrtAuthServer {
    *
    * @param token the token to validate.
    * @return the username that this token belongs to.
-   * @throws InvalidInputException If the token appears to have been tampered with.
+   * @throws IllegalArgumentException If the token appears to have been tampered with.
    * @throws TokenExpiredException If the token is outside of its validity period.
    */
-  public String validateToken(String token) throws InvalidInputException, TokenExpiredException {
-    final Token deserializedToken;
-    try {
-      deserializedToken = CrtAuthCodec.deserializeTokenAuthenticated(decode(token), secret);
-    } catch (DeserializationException e) {
-      throw new InvalidInputException(String.format("failed deserialize token '%s'", token));
-    }
+  public String validateToken(String token)
+      throws IllegalArgumentException, TokenExpiredException, ProtocolVersionException {
+    final Token deserializedToken =
+        CrtAuthCodec.deserializeTokenAuthenticated(decode(token), secret);
     if (deserializedToken.isExpired(timeSupplier)) {
-      throw new InvalidInputException("Token expired");
+      throw new TokenExpiredException();
     }
     if (deserializedToken.getValidTo() - deserializedToken.getValidFrom() > MAX_VALIDITY) {
-      throw new InvalidInputException("Overly long token validity");
+      throw new TokenExpiredException("Overly long token validity");
     }
     return deserializedToken.getUserName();
   }

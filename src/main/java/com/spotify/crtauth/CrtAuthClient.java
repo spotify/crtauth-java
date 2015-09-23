@@ -21,18 +21,15 @@
 
 package com.spotify.crtauth;
 
-import com.spotify.crtauth.exceptions.DeserializationException;
-import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.exceptions.KeyNotFoundException;
-import com.spotify.crtauth.exceptions.SerializationException;
-import com.spotify.crtauth.exceptions.SignerException;
+import com.spotify.crtauth.exceptions.ProtocolVersionException;
 import com.spotify.crtauth.protocol.Challenge;
 import com.spotify.crtauth.protocol.CrtAuthCodec;
 import com.spotify.crtauth.protocol.Response;
 import com.spotify.crtauth.signer.Signer;
 
-import static com.spotify.crtauth.ASCIICodec.decode;
-import static com.spotify.crtauth.ASCIICodec.encode;
+import static com.spotify.crtauth.utils.ASCIICodec.decode;
+import static com.spotify.crtauth.utils.ASCIICodec.encode;
 
 /**
  * This class creates a response String given a challenge from a server using the
@@ -61,27 +58,20 @@ public class CrtAuthClient {
    *
    * @param challenge A challenge String obtained from a server.
    * @return The response String to be returned to the server.
-   * @throws InvalidInputException if there is something wrong with the challenge.
-   * @throws SignerException If a valid signature for the input challenge cannot be produced.
+   * @throws IllegalArgumentException if there is something wrong with the challenge.
    */
   public String createResponse(String challenge)
-      throws InvalidInputException, SignerException, KeyNotFoundException {
+      throws IllegalArgumentException, KeyNotFoundException, ProtocolVersionException {
     byte[] decodedChallenge = decode(challenge);
-    Challenge deserializedChallenge;
-    try {
-      deserializedChallenge = CrtAuthCodec.deserializeChallenge(decodedChallenge);
-    } catch (DeserializationException e) {
-      throw new InvalidInputException(e);
-    }
+    Challenge deserializedChallenge = CrtAuthCodec.deserializeChallenge(decodedChallenge);
     if (!deserializedChallenge.getServerName().equals(serverName)) {
-      throw new InvalidInputException("Invalid serverName in challenge. Possible MITM attack.");
+      throw new IllegalArgumentException(
+          String.format("Server name mismatch (%s != %s). Possible MITM attack.",
+                        deserializedChallenge.getServerName(), serverName)
+      );
     }
     byte[] signature = signer.sign(decodedChallenge, deserializedChallenge.getFingerprint());
-    try {
-      return encode(CrtAuthCodec.serialize(new Response(decodedChallenge, signature)));
-    } catch (SerializationException e) {
-      throw new InvalidInputException(e);
-    }
+    return encode(CrtAuthCodec.serialize(new Response(decodedChallenge, signature)));
   }
 
   /**
