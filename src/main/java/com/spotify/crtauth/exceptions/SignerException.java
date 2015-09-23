@@ -29,4 +29,12 @@ public class SignerException extends CrtAuthException {
   public SignerException(String message) {
     super(message);
   }
+
+  public SignerException(Throwable throwable) {
+    super(throwable);
+  }
+
+  public SignerException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }
