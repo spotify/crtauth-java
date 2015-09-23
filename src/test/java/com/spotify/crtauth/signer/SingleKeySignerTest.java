@@ -26,7 +26,7 @@ import java.security.KeyPair;
 
 public class SingleKeySignerTest extends SignerTest<SingleKeySigner> {
   @Override
-  protected SingleKeySigner getInstance(KeyPair keyPair) throws Exception {
+  protected SingleKeySigner getInstance(KeyPair keyPair) {
     return new SingleKeySigner(keyPair.getPrivate());
   }
 }

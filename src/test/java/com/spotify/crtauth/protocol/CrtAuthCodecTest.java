@@ -18,10 +18,8 @@ package com.spotify.crtauth.protocol;
 
 import com.google.common.primitives.UnsignedInteger;
 import com.spotify.crtauth.ASCIICodec;
-import com.spotify.crtauth.CrtAuthClient;
 import com.spotify.crtauth.CrtAuthClientTest;
 import com.spotify.crtauth.Fingerprint;
-import com.spotify.crtauth.exceptions.DeserializationException;
 import com.spotify.crtauth.exceptions.InvalidInputException;
 import com.spotify.crtauth.signer.Signer;
 import com.spotify.crtauth.signer.SingleKeySigner;
@@ -38,11 +36,11 @@ import static org.junit.Assert.assertEquals;
 public class CrtAuthCodecTest {
 
   // ENCODED_ data is encoded using the python implementation, to ensure binary compatibility
-  static final byte[] ENCODED_CHALLENGE =
+  private static final byte[] ENCODED_CHALLENGE =
       ASCIICodec.decode("AWPEFHVYRk_S23_-fX-TkSB2aIlHNh_CzlFdiK7OUV2J2sQGTJoHEssesnNlcnZlci5leG" +
           "FtcGxlLmNvbah1c2VybmFtZcQg9y3oyBv4xUfpPHC9ZcHoj-c1hjHtOj9TSn_jVvv8ELI=");
 
-  static final byte[] ENCODED_RESPONSE = ASCIICodec.decode(
+  private static final byte[] ENCODED_RESPONSE = ASCIICodec.decode(
       "AXLEaAFjxBR1WEZP0tt__n1_k5EgdmiJRzYfws5RXYiuzlFdidrEBkyaBxLLHrJzZXJ2ZXIuZXhhbXBsZS5jb22o" +
       "dXNlcm5hbWXEIPct6Mgb-MVH6TxwvWXB6I_nNYYx7To_U0p_41b7_BCyxQEAPymreRi3DDVCz5rUdCqLCdCP89pY" +
       "pnrBJ-p9yWColikZcoV6aY7xbEqRpY40fcgGcSmXVPZBCxCQ67YWAlFLuBs72YOBTd-lkABFe_-tnu_58k_Ll-Cd" +
@@ -51,7 +49,7 @@ public class CrtAuthCodecTest {
       "xfP_x024iQAf4fxRzGLBoq9ENWrMtLcieQ3AtoyoNDbWWSHVhg=="
   );
 
-  static final byte[] ENCODED_TOKEN = ASCIICodec.decode(
+  private static final byte[] ENCODED_TOKEN = ASCIICodec.decode(
       "AXTOUV2Irs5RXYnao25vYcQgKVlUyZneScS57Xwk2syvL0GTQhV0FF9ciWQZYluN4m8="
   );
 
@@ -87,7 +85,7 @@ public class CrtAuthCodecTest {
     Signer signer = new SingleKeySigner(CrtAuthClientTest.getPrivateKey());
     byte[] signature = signer.sign(
         CrtAuthCodecTest.ENCODED_CHALLENGE,
-        getFingerprint(CrtAuthCodecTest.ENCODED_CHALLENGE)
+        CrtAuthCodec.deserializeChallenge(CrtAuthCodecTest.ENCODED_CHALLENGE).getFingerprint()
     );
     Response resp = new Response(CrtAuthCodecTest.ENCODED_CHALLENGE, signature);
     Assert.assertArrayEquals(ENCODED_RESPONSE, CrtAuthCodec.serialize(resp));
@@ -111,7 +109,7 @@ public class CrtAuthCodecTest {
 
   @Test
   public void testDeserializeToken() throws Exception {
-    Token token = CrtAuthCodec.deserializeToken(ENCODED_TOKEN);
+    Token token = CrtAuthCodec.deserializeTokenAuthenticated(ENCODED_TOKEN, "gurkburk".getBytes());
     assertEquals(TOKEN, token);
   }
 
@@ -129,11 +127,6 @@ public class CrtAuthCodecTest {
         CrtAuthCodecTest.ENCODED_CHALLENGE, CrtAuthCodecTest.ENCODED_CHALLENGE.length);
     mine[mine.length - 4] = 't';
     CrtAuthCodec.deserializeChallengeAuthenticated(mine, "secret".getBytes());
-  }
-
-
-  private Fingerprint getFingerprint(byte[] challenge) throws DeserializationException {
-    return CrtAuthCodec.deserializeChallenge(challenge).getFingerprint();
   }
 
 

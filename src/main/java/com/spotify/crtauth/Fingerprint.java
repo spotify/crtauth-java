@@ -16,7 +16,6 @@
 
 package com.spotify.crtauth;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.Hashing;
 
 import java.io.ByteArrayOutputStream;
@@ -45,7 +44,7 @@ public class Fingerprint {
   // The size of a newly generated public part of a 4096 bit key
   private static final int TYPICAL_KEY_SIZE = 535;
 
-  private byte[] bytes;
+  private final byte[] bytes;
 
   // TODO: Move CrtAuthCodec into the same package, and make this constructor package local
   public Fingerprint(byte[] fingerprint) {
@@ -85,8 +84,7 @@ public class Fingerprint {
     return buffer.toByteArray();
   }
 
-  @VisibleForTesting
-  static void writeVariableLengthOpaque(byte[] opaque, DataOutput byteBuffer) {
+  private static void writeVariableLengthOpaque(byte[] opaque, DataOutput byteBuffer) {
     try {
       byteBuffer.writeInt(opaque.length);
       byteBuffer.write(opaque);
