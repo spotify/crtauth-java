@@ -1,17 +1,22 @@
 /*
- * Copyright (c) 2014 Spotify AB
+ * Copyright (c) 2015 Spotify AB.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/license/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 
 package com.spotify.crtauth.protocol;
@@ -44,11 +49,11 @@ public class CrtAuthCodec {
   /**
    * Serialize a challenge into it's binary representation
    *
-   * @param challenge the challenge to serialize
-   * @param hmac_secret the secret used to generate the HMAC field
+   * @param challenge   the challenge to serialize
+   * @param hmacSecret the secret used to generate the HMAC field
    * @return an array of bytes representing the provided Challenge
    */
-  public static byte[] serialize(Challenge challenge, byte[] hmac_secret) {
+  public static byte[] serialize(Challenge challenge, byte[] hmacSecret) {
     MiniMessagePack.Packer packer = new MiniMessagePack.Packer();
     packer.pack(VERSION);
     packer.pack(CHALLENGE_MAGIC);
@@ -59,7 +64,7 @@ public class CrtAuthCodec {
     packer.pack(challenge.getServerName());
     packer.pack(challenge.getUserName());
     byte[] bytes = packer.getBytes();
-    byte[] mac = getAuthenticationCode(hmac_secret, bytes);
+    byte[] mac = getAuthenticationCode(hmacSecret, bytes);
     packer.pack(mac);
     return packer.getBytes();
   }
@@ -69,11 +74,11 @@ public class CrtAuthCodec {
     return doDeserializeChallenge(new MiniMessagePack.Unpacker(data));
   }
 
-  public static Challenge deserializeChallengeAuthenticated(byte[] data, byte[] hmac_secret)
+  public static Challenge deserializeChallengeAuthenticated(byte[] data, byte[] hmacSecret)
       throws IllegalArgumentException, ProtocolVersionException {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
     Challenge c = doDeserializeChallenge(unpacker);
-    byte[] digest = getAuthenticationCode(hmac_secret, data, unpacker.getBytesRead());
+    byte[] digest = getAuthenticationCode(hmacSecret, data, unpacker.getBytesRead());
     try {
       if (!Arrays.equals(digest, unpacker.unpackBin())) {
         throw new IllegalArgumentException("HMAC validation failed");
@@ -113,12 +118,12 @@ public class CrtAuthCodec {
     }
   }
 
-  public static Token deserializeTokenAuthenticated(byte[] data, byte[] hmac_secret)
+  public static Token deserializeTokenAuthenticated(byte[] data, byte[] hmacSecret)
       throws IllegalArgumentException, ProtocolVersionException {
     MiniMessagePack.Unpacker unpacker = new MiniMessagePack.Unpacker(data);
     try {
       Token token = doDeserializeToken(unpacker);
-      byte[] digest = getAuthenticationCode(hmac_secret, data, unpacker.getBytesRead());
+      byte[] digest = getAuthenticationCode(hmacSecret, data, unpacker.getBytesRead());
       if (!Arrays.equals(digest, unpacker.unpackBin())) {
         throw new IllegalArgumentException("HMAC validation failed");
       }
@@ -129,14 +134,14 @@ public class CrtAuthCodec {
 
   }
 
-  public static byte[] serialize(Token token, byte[] hmac_secret) {
+  public static byte[] serialize(Token token, byte[] hmacSecret) {
     MiniMessagePack.Packer packer = new MiniMessagePack.Packer();
     packer.pack((byte) 0x01);
     packer.pack(TOKEN_MAGIC);
     packer.pack(token.getValidFrom());
     packer.pack(token.getValidTo());
     packer.pack(token.getUserName());
-    packer.pack(getAuthenticationCode(hmac_secret, packer.getBytes()));
+    packer.pack(getAuthenticationCode(hmacSecret, packer.getBytes()));
     return packer.getBytes();
   }
 
@@ -144,15 +149,15 @@ public class CrtAuthCodec {
   private static Challenge doDeserializeChallenge(MiniMessagePack.Unpacker unpacker)
       throws IllegalArgumentException, ProtocolVersionException {
     try {
-    parseVersionMagic(CHALLENGE_MAGIC, unpacker);
-    return new Challenge(
-        unpacker.unpackBin(),                  // unique data
-        unpacker.unpackInt(),                  // validFromTimestamp
-        unpacker.unpackInt(),                  // validToTimestamp
-        new Fingerprint(unpacker.unpackBin()), // fingerprint
-        unpacker.unpackString(),               // serverName
-        unpacker.unpackString()                // username
-    );
+      parseVersionMagic(CHALLENGE_MAGIC, unpacker);
+      return new Challenge(
+          unpacker.unpackBin(),                  // unique data
+          unpacker.unpackInt(),                  // validFromTimestamp
+          unpacker.unpackInt(),                  // validToTimestamp
+          new Fingerprint(unpacker.unpackBin()), // fingerprint
+          unpacker.unpackString(),               // serverName
+          unpacker.unpackString()                // username
+      );
     } catch (DeserializationException e) {
       throw new IllegalArgumentException(e);
     }
@@ -177,7 +182,7 @@ public class CrtAuthCodec {
    * using SHA256 as hash function.
    *
    * @param secret the secret used to authenticate
-   * @param data the data to authenticate
+   * @param data   the data to authenticate
    * @param length the number of bytes from data to use when calculating the HMAC
    * @return an HMAC code for the specified data and secret
    */
@@ -198,8 +203,8 @@ public class CrtAuthCodec {
   }
 
   /**
-   * Create a request string from a username. Request is too trivial for it to make it into a
-   * class of it's own a this stage.
+   * Create a request string from a username. Request is too trivial for it to make it into a class
+   * of it's own a this stage.
    *
    * @param username the username to encode
    * @return an encoded request message
@@ -213,8 +218,8 @@ public class CrtAuthCodec {
   }
 
   /**
-   * Deserialize an ASCII encoded request messages and return the username string it encodes.
-   * Also verifies that the type magic value matches and that the version equals 1.
+   * Deserialize an ASCII encoded request messages and return the username string it encodes. Also
+   * verifies that the type magic value matches and that the version equals 1.
    *
    * @param request the ASCII encoded request String
    * @return the username encoded in the String
@@ -243,7 +248,7 @@ public class CrtAuthCodec {
       }
       throw new ProtocolVersionException(
           "Received a message with too new version of the protocol. " +
-              "Only version 1 is supported, received version %d" + version
+          "Only version 1 is supported, received version %d" + version
       );
     }
     byte readMagic = unpacker.unpackByte();

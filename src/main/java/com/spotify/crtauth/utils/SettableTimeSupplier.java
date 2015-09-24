@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -27,6 +27,7 @@ import com.google.common.primitives.UnsignedInteger;
  * A configurable time supplier, useful fot testing.
  */
 public class SettableTimeSupplier implements TimeSupplier {
+
   private int time;
 
   public void setTime(int time) {

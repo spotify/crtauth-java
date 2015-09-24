@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,6 +18,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.crtauth.protocol;
 
 import com.google.common.base.Charsets;
@@ -48,24 +49,23 @@ class MiniMessagePack {
     private final DataOutputStream dataOutput = new DataOutputStream(byteArrayOutputStream);
 
     /**
-     * Pack an integer in msgpack format. Negative values are not supported
-     * at the moment.
+     * Pack an integer in msgpack format. Negative values are not supported at the moment.
      *
      * @param integer a positive integer
      */
     public void pack(int integer) {
       checkArgument(integer >= 0, "Negative integers not supported at the moment");
       try {
-        if (integer < 1<<7) {
+        if (integer < 1 << 7) {
           dataOutput.writeByte(integer);
-        } else if (integer < 1<<8) {
-          dataOutput.writeByte((byte)0xcc);
+        } else if (integer < 1 << 8) {
+          dataOutput.writeByte((byte) 0xcc);
           dataOutput.writeByte(integer);
-        } else if (integer < 1<<16) {
-          dataOutput.writeByte((byte)0xcd);
+        } else if (integer < 1 << 16) {
+          dataOutput.writeByte((byte) 0xcd);
           dataOutput.writeShort(integer);
         } else {
-          dataOutput.writeByte((byte)0xce);
+          dataOutput.writeByte((byte) 0xce);
           dataOutput.writeInt(integer);
         }
       } catch (IOException e) {
@@ -81,10 +81,10 @@ class MiniMessagePack {
     public void pack(byte[] data) {
       checkNotNull(data);
       try {
-        if (data.length < 1<<8) {
+        if (data.length < 1 << 8) {
           dataOutput.write(0xc4);
           dataOutput.writeByte(data.length);
-        } else if (data.length < 1<<16) {
+        } else if (data.length < 1 << 16) {
           dataOutput.write(0xc5);
           dataOutput.writeShort(data.length);
         } else {
@@ -106,12 +106,12 @@ class MiniMessagePack {
       checkNotNull(data);
       byte[] encoded = data.getBytes(Charsets.UTF_8);
       try {
-        if (encoded.length < 1<<5) {
+        if (encoded.length < 1 << 5) {
           dataOutput.write(0xa0 | encoded.length);
-        } else if (data.length() < 1<<8) {
+        } else if (data.length() < 1 << 8) {
           dataOutput.write(0xd9);
           dataOutput.writeByte(encoded.length);
-        } else if (data.length() < 1<<16) {
+        } else if (data.length() < 1 << 16) {
           dataOutput.write(0xda);
           dataOutput.writeShort(encoded.length);
         } else {
@@ -151,7 +151,6 @@ class MiniMessagePack {
      * Unpacks and returns an int from this Unpacker. Negative integers are not yet supported.
      *
      * @return the int we read.
-     * @throws DeserializationException
      */
     public int unpackInt() throws DeserializationException {
       try {
@@ -167,7 +166,7 @@ class MiniMessagePack {
           int ret = dataInputStream.readInt();
           if (ret < 0) {
             throw new DeserializationException(
-              "Attempting to deserialize an integer larger than Integer.MAX_VALUE"
+                "Attempting to deserialize an integer larger than Integer.MAX_VALUE"
             );
           }
           return ret;
@@ -184,9 +183,10 @@ class MiniMessagePack {
 
     /**
      * Unpacks and returns a byte array from this Unpacker instance.
+     *
      * @return a byte array with binary data
-     * @throws DeserializationException if an attempt to read past the end of the internal buffer
-     *   or if the data read is not marked as in the bin family
+     * @throws DeserializationException if an attempt to read past the end of the internal buffer or
+     *                                  if the data read is not marked as in the bin family
      */
     public byte[] unpackBin() throws DeserializationException {
       try {
@@ -220,9 +220,10 @@ class MiniMessagePack {
     /**
      * Unpacks and returns a String read from this unpacker.
      *
-     * @throws DeserializationException if the read data is not possible to decode as UTF-8,
-     * or if the buffer is too small, or if the data decoded is not described as String
      * @return returns a String
+     * @throws DeserializationException if the read data is not possible to decode as UTF-8, or if
+     *                                  the buffer is too small, or if the data decoded is not
+     *                                  described as String
      */
     public String unpackString() throws DeserializationException {
       try {
@@ -256,8 +257,8 @@ class MiniMessagePack {
     }
 
     /**
-     * Unpack an int and return it cast to a java byte (which is signed), throwing an
-     * exception if the integer unpacked is too large to fit.
+     * Unpack an int and return it cast to a java byte (which is signed), throwing an exception if
+     * the integer unpacked is too large to fit.
      *
      * @return an unpacked byte
      * @throws DeserializationException if the read int is too big.
@@ -267,7 +268,7 @@ class MiniMessagePack {
       if (i > 0xff) {
         throw new DeserializationException("Expected unsigned int < 0xff");
       }
-      return (byte)i;
+      return (byte) i;
     }
 
 
@@ -276,10 +277,11 @@ class MiniMessagePack {
      *
      * @param inputStream the InputStream to read from
      * @return an unsigned byte, stored in an int
-     * @throws IOException if the read fails
+     * @throws IOException              if the read fails
      * @throws DeserializationException if end of file is reached
      */
-    private static int readByte(InputStream inputStream) throws IOException, DeserializationException {
+    private static int readByte(InputStream inputStream)
+        throws IOException, DeserializationException {
       final int i = inputStream.read();
       if (i == -1) {
         throw new DeserializationException("Attempted to read past end of buffer");

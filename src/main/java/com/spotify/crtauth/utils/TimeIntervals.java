@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -24,11 +24,12 @@ package com.spotify.crtauth.utils;
 import com.google.common.primitives.UnsignedInteger;
 
 public class TimeIntervals {
+
   public static boolean isExpired(int validFrom, int validTo, TimeSupplier timeSupplier) {
     UnsignedInteger currentUTime = timeSupplier.getTime();
     UnsignedInteger validUFrom = UnsignedInteger.fromIntBits(validFrom);
     UnsignedInteger validUTo = UnsignedInteger.fromIntBits(validTo);
     return validUFrom.compareTo(currentUTime) > 0 ||
-        validUTo.compareTo(currentUTime) < 0;
+           validUTo.compareTo(currentUTime) < 0;
   }
 }

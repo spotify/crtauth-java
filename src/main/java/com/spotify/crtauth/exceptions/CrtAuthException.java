@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,6 +22,7 @@
 package com.spotify.crtauth.exceptions;
 
 public class CrtAuthException extends Exception {
+
   public CrtAuthException() {
     super();
   }

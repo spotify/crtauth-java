@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -27,8 +27,10 @@ import com.google.common.primitives.UnsignedInteger;
  * This interface wraps a single method that provides a plug-in source of time.
  */
 public interface TimeSupplier {
+
   /**
    * Return the time, as the number of seconds elapsed from the Epoch.
+   *
    * @return the number of seconds from the Epoch, as an unsigned integer.
    */
   UnsignedInteger getTime();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -32,6 +32,7 @@ import java.util.Arrays;
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class Challenge {
+
   public static final int UNIQUE_DATA_LENGTH = 20;
 
   private final byte[] uniqueData;
@@ -42,6 +43,7 @@ public class Challenge {
   private final String userName;
 
   public static class Builder {
+
     private byte[] uniqueData;
     private int validFromTimestamp;
     private int validToTimestamp;
@@ -92,29 +94,34 @@ public class Challenge {
 
     public Challenge build() {
       return new Challenge(uniqueData, validFromTimestamp, validToTimestamp,
-          fingerprint, serverName, userName);
+                           fingerprint, serverName, userName);
     }
   }
 
   public Challenge(byte[] uniqueData, int validFromTimestamp,
-      int validToTimestamp, Fingerprint fingerprint, String serverName,
-      String userName) {
-    if (uniqueData == null)
+                   int validToTimestamp, Fingerprint fingerprint, String serverName,
+                   String userName) {
+    if (uniqueData == null) {
       throw new IllegalArgumentException("'uniqueData' must be set");
+    }
 
-    if (fingerprint == null)
+    if (fingerprint == null) {
       throw new IllegalArgumentException("'fingerprint' must be set");
+    }
 
-    if (!(validFromTimestamp < validToTimestamp))
+    if (!(validFromTimestamp < validToTimestamp)) {
       throw new IllegalArgumentException(
           "validity timestamps are invalid, 'validFromTimestamp' "
-              + "must be smaller than 'validToTimestamp'");
+          + "must be smaller than 'validToTimestamp'");
+    }
 
-    if (serverName == null || serverName.isEmpty())
+    if (serverName == null || serverName.isEmpty()) {
       throw new IllegalArgumentException("'serverName' must be set and non-empty");
+    }
 
-    if (userName == null || userName.isEmpty())
+    if (userName == null || userName.isEmpty()) {
       throw new IllegalArgumentException("'userName' must be set and non-empty");
+    }
 
     this.uniqueData = uniqueData;
     this.validFromTimestamp = validFromTimestamp;
@@ -153,23 +160,25 @@ public class Challenge {
   }
 
   public boolean isExpired(TimeSupplier timeSupplier) {
-    return TimeIntervals.isExpired(validFromTimestamp, validToTimestamp,
-        timeSupplier);
+    return TimeIntervals.isExpired(validFromTimestamp, validToTimestamp, timeSupplier);
   }
 
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
 
     Challenge challenge = (Challenge) o;
 
     return Arrays.equals(uniqueData, challenge.uniqueData)
-        && validFromTimestamp == challenge.validFromTimestamp
-        && validToTimestamp == challenge.validToTimestamp
-        && fingerprint.equals(challenge.fingerprint)
-        && serverName.equals(challenge.serverName)
-        && userName.equals(challenge.userName);
-
+           && validFromTimestamp == challenge.validFromTimestamp
+           && validToTimestamp == challenge.validToTimestamp
+           && fingerprint.equals(challenge.fingerprint)
+           && serverName.equals(challenge.serverName)
+           && userName.equals(challenge.userName);
   }
 
   @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -27,6 +27,7 @@ import com.spotify.crtauth.utils.TimeIntervals;
 import com.spotify.crtauth.utils.TimeSupplier;
 
 public class Token {
+
   private static final byte MAGIC = 't';
 
   private final int validFrom;
@@ -61,13 +62,21 @@ public class Token {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
 
     Token token = (Token) o;
 
-    if (validFrom != token.validFrom) return false;
-    if (validTo != token.validTo) return false;
+    if (validFrom != token.validFrom) {
+      return false;
+    }
+    if (validTo != token.validTo) {
+      return false;
+    }
     return userName.equals(token.userName);
 
   }

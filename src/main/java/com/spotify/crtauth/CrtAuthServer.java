@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -50,8 +50,8 @@ import static com.spotify.crtauth.utils.ASCIICodec.decode;
 import static com.spotify.crtauth.utils.ASCIICodec.encode;
 
 /**
- * Instances of this class implements the server part of an crtauth authentication interaction.
- * A consumer of this class would typically provide a means for remote clients to call the
+ * Instances of this class implements the server part of an crtauth authentication interaction. A
+ * consumer of this class would typically provide a means for remote clients to call the
  * createChallenge() and createToken() methods using i.e. HTTPS.
  *
  * A client is expected to perform the following operations:
@@ -66,11 +66,12 @@ import static com.spotify.crtauth.utils.ASCIICodec.encode;
  * </ol>
  *
  * The authentication mechanism is time sensitive, since it relies on a specified validity period
- * for tokens. A clock can be off at most CLOCK_FUGDE seconds before the server starts emitting
- * too new/too old messages. Also, after the server sends a challenge, the client is supposed to
- * produce a reply within RESP_TIMEOUT seconds.
+ * for tokens. A clock can be off at most CLOCK_FUGDE seconds before the server starts emitting too
+ * new/too old messages. Also, after the server sends a challenge, the client is supposed to produce
+ * a reply within RESP_TIMEOUT seconds.
  */
 public class CrtAuthServer {
+
   private static final UnsignedInteger CLOCK_FUDGE = UnsignedInteger.fromIntBits(2);
   private static final UnsignedInteger RESPONSE_TIMEOUT = UnsignedInteger.fromIntBits(20);
   // the maximum number of seconds the total duration of the validity of a token
@@ -87,6 +88,7 @@ public class CrtAuthServer {
   private static final Logger log = LoggerFactory.getLogger(CrtAuthServer.class);
 
   public static class Builder {
+
     private static final UnsignedInteger DEFAULT_TOKEN_LIFETIME_IN_S =
         UnsignedInteger.fromIntBits(60);
     private static final TimeSupplier DEFAULT_TIME_SUPPLIER = new RealTimeSupplier();
@@ -133,11 +135,11 @@ public class CrtAuthServer {
       checkNotNull(keyProvider);
       checkNotNull(secret);
       return new CrtAuthServer(tokenLifetimeInS.or(DEFAULT_TOKEN_LIFETIME_IN_S),
-          serverName,
-          keyProvider,
-          timeSupplier.or(DEFAULT_TIME_SUPPLIER),
-          random.or(new Random()),
-          secret
+                               serverName,
+                               keyProvider,
+                               timeSupplier.or(DEFAULT_TIME_SUPPLIER),
+                               random.or(new Random()),
+                               secret
       );
     }
   }
@@ -163,9 +165,8 @@ public class CrtAuthServer {
    * reveal whether a user key is present on the server or not.
    *
    * @param request The request message which contains an encoded username
-   * @throws IllegalArgumentException if the request format is invalid
-   *
    * @return A challenge message.
+   * @throws IllegalArgumentException if the request format is invalid
    */
   public String createChallenge(String request)
       throws IllegalArgumentException, ProtocolVersionException {
@@ -209,7 +210,8 @@ public class CrtAuthServer {
   }
 
   /**
-   * Given the response to a previous challenge, produce a token used by the client to authenticate.
+   * Given the response to a previous challenge, produce a token used by the client to
+   * authenticate.
    *
    * @param response The client's response to the initial challenge.
    * @return A token used to authenticate subsequent requests.
@@ -249,7 +251,7 @@ public class CrtAuthServer {
     }
     if (!signatureVerified) {
       throw new IllegalArgumentException("Client did not provide proof that it controls the " +
-          "secret key.");
+                                         "secret key.");
     }
     UnsignedInteger validFrom = timeSupplier.getTime().minus(CLOCK_FUDGE);
     UnsignedInteger validTo = timeSupplier.getTime().plus(tokenLifetimeInS);
@@ -258,13 +260,13 @@ public class CrtAuthServer {
   }
 
   /**
-   * Verify that a given token is valid, i.e. that it has been produced by the current
-   * authenticator and that it's not outside of its validity period.
+   * Verify that a given token is valid, i.e. that it has been produced by the current authenticator
+   * and that it's not outside of its validity period.
    *
    * @param token the token to validate.
    * @return the username that this token belongs to.
    * @throws IllegalArgumentException If the token appears to have been tampered with.
-   * @throws TokenExpiredException If the token is outside of its validity period.
+   * @throws TokenExpiredException    If the token is outside of its validity period.
    */
   public String validateToken(String token)
       throws IllegalArgumentException, TokenExpiredException, ProtocolVersionException {

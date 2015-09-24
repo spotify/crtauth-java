@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -25,18 +25,17 @@ import com.spotify.crtauth.Fingerprint;
 import com.spotify.crtauth.exceptions.KeyNotFoundException;
 
 /**
- * This interface wraps a single method to sign a challenge. It's the core component of the
- * CrtAuth client.
+ * This interface wraps a single method to sign a challenge. It's the core component of the CrtAuth
+ * client.
  */
 public interface Signer {
+
   /**
-   * Sign some binary data using the private key corresponding to the public key with the
-   * provided fingerprint.
-   *
+   * Sign some binary data using the private key corresponding to the public key with the provided
+   * fingerprint.
    *
    * @param data Some data to sign, typically a serialized challenge
    * @return A signature, as a byte array.
-   *
    */
   byte[] sign(byte[] data, Fingerprint fingerprint)
       throws IllegalArgumentException, KeyNotFoundException;

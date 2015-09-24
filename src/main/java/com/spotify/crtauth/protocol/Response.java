@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import java.util.Arrays;
 
 public class Response {
+
   private final byte[] payload;
   private final byte[] signature;
 
@@ -47,14 +48,16 @@ public class Response {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
+    }
 
     Response response = (Response) o;
     return Arrays.equals(signature, response.signature)
-        && Arrays.equals(payload, response.payload);
+           && Arrays.equals(payload, response.payload);
   }
 
   @Override

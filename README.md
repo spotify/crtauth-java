@@ -27,4 +27,4 @@ crtauth-java is free software, this code is released under the Apache Software
 License, version 2. The original code is written by Federico Piccinini with
 contributions from Noa Resare, John-John Tedro, Martin Parm and Nic Cope.
 
-All code is Copyright (c) 2014 Spotify AB
+All code is Copyright (c) 2015 Spotify AB

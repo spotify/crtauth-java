@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -41,9 +41,10 @@ import java.util.regex.Pattern;
  * A set of utilities to parse private and public RSA PEM keys as produced by ssh-keygen.
  */
 public class TraditionalKeyParser {
+
   private static final Pattern PUBLIC_KEY_PATTERN = Pattern.compile("^ssh-rsa (.+) .*$");
-  private static final Pattern PRIVATE_KEY_PATTERN = Pattern.compile("^-+BEGIN RSA PRIVATE KEY-+" +
-      "([^-]+)-+END RSA PRIVATE KEY-+$");
+  private static final Pattern PRIVATE_KEY_PATTERN =
+      Pattern.compile("^-+BEGIN RSA PRIVATE KEY-+([^-]+)-+END RSA PRIVATE KEY-+$");
   private static final int INTEGER_SIZE = Integer.SIZE;
   private static final String PUBLIC_KEY_TYPE = "ssh-rsa";
 
@@ -95,6 +96,7 @@ public class TraditionalKeyParser {
 
   /**
    * This is a simplistic ASN.1 parser that can only parse a collection of primitive types.
+   *
    * @param byteBuffer the raw byte representation of a Pcks1 private key.
    * @return A list of bytes array that represent the content of the original ASN.1 collection.
    */
@@ -107,8 +109,8 @@ public class TraditionalKeyParser {
         int numberOfOctets = length ^ 0x80;
         length = 0;
         for (int i = 0; i < numberOfOctets; ++i) {
-          int length_chunk = UnsignedBytes.toInt(byteBuffer.get());
-          length += length_chunk << (numberOfOctets - i - 1) * 8;
+          int lengthChunk = UnsignedBytes.toInt(byteBuffer.get());
+          length += lengthChunk << (numberOfOctets - i - 1) * 8;
         }
       }
       if (length < 0) {

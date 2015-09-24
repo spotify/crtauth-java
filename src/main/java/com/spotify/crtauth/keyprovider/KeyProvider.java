@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -29,13 +29,16 @@ import java.security.interfaces.RSAPublicKey;
  * This interface exposes a single method to obtain a key for a given user.
  */
 public interface KeyProvider {
+
   /**
    * Return a public key for the given username.
+   *
    * @param username A username as a string.
    * @return The user's public key.
-   * @throws KeyNotFoundException when the key is not available. This might happen both because
-   * the key for a given user is not available or because a key for the given user is available
-   * but it cannot be recognized as a valid public key.
+   * @throws KeyNotFoundException when the key is not available. This might happen both because the
+   *                              key for a given user is not available or because a key for the
+   *                              given user is available but it cannot be recognized as a valid
+   *                              public key.
    */
   RSAPublicKey getKey(String username) throws KeyNotFoundException;
 }

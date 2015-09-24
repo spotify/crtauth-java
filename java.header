@@ -19,15 +19,3 @@
  * under the License.
  */
 
-package com.spotify.crtauth.exceptions;
-
-public class TokenExpiredException extends CrtAuthException {
-
-  public TokenExpiredException() {
-    super();
-  }
-
-  public TokenExpiredException(String message) {
-    super(message);
-  }
-}

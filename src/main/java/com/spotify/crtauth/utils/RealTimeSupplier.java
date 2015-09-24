@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -26,6 +26,7 @@ import com.google.common.primitives.UnsignedInteger;
 import java.util.concurrent.TimeUnit;
 
 public class RealTimeSupplier implements TimeSupplier {
+
   @Override
   public UnsignedInteger getTime() {
     long currentTime = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());

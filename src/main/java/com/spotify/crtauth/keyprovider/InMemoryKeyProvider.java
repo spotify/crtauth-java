@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class InMemoryKeyProvider implements KeyProvider {
+
   private final Map<String, RSAPublicKey> keys = new HashMap<String, RSAPublicKey>();
 
   public void putKey(String username, RSAPublicKey key) {

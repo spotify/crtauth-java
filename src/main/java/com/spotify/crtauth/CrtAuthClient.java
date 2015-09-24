@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -32,19 +32,20 @@ import static com.spotify.crtauth.utils.ASCIICodec.decode;
 import static com.spotify.crtauth.utils.ASCIICodec.encode;
 
 /**
- * This class creates a response String given a challenge from a server using the
- * Signer instance provided in the constructor. Additionally, this class verifies that the
- * serverName embedded in the challenge matches serverName, to prevent attacks when a client
- * is tricked to sign a challenge for an unrelated serverName by an attacker.
+ * This class creates a response String given a challenge from a server using the Signer instance
+ * provided in the constructor. Additionally, this class verifies that the serverName embedded in
+ * the challenge matches serverName, to prevent attacks when a client is tricked to sign a challenge
+ * for an unrelated serverName by an attacker.
  */
 public class CrtAuthClient {
+
   private final Signer signer;
   private final String serverName;
 
   /**
    * Construct an CrtAuthClient instance backed by the provided signer.
    *
-   * @param signer a Signer instance to back the constructed instance.
+   * @param signer     a Signer instance to back the constructed instance.
    * @param serverName the name of the server this client gets requests from.
    */
   public CrtAuthClient(Signer signer, String serverName) {
@@ -53,8 +54,8 @@ public class CrtAuthClient {
   }
 
   /**
-   * Generate a response String using the Signer of this instance, additionally verifying
-   * that the embedded serverName matches the serverName of this instance.
+   * Generate a response String using the Signer of this instance, additionally verifying that the
+   * embedded serverName matches the serverName of this instance.
    *
    * @param challenge A challenge String obtained from a server.
    * @return The response String to be returned to the server.
@@ -75,8 +76,8 @@ public class CrtAuthClient {
   }
 
   /**
-   * Create a request string from a username. Request is too trivial for it to make it into a
-   * class of it's own a this stage.
+   * Create a request string from a username. Request is too trivial for it to make it into a class
+   * of it's own a this stage.
    *
    * @param username the username to encode
    * @return an encoded request message

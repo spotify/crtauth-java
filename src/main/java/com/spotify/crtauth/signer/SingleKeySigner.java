@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Spotify AB.
+ * Copyright (c) 2015 Spotify AB.
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -27,6 +27,7 @@ import java.security.PrivateKey;
 import java.security.Signature;
 
 public class SingleKeySigner implements Signer {
+
   private static final String SIGNATURE_ALGORITHM = "SHA1withRSA";
   private final PrivateKey privateKey;
 
