@@ -25,8 +25,6 @@ import com.spotify.crtauth.Fingerprint;
 import com.spotify.crtauth.exceptions.ProtocolVersionException;
 import com.spotify.crtauth.utils.ASCIICodec;
 
-import java.util.Arrays;
-
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
