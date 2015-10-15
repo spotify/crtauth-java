@@ -196,4 +196,14 @@ public class CrtAuthServerTest {
     String ts = encode(CrtAuthCodec.serialize(t, "server_secret".getBytes()));
     crtAuthServer.validateToken(ts);
   }
+
+  @Test(expected = TokenExpiredException.class)
+  public void testBuilderFailsOnOverlyLongTokenValidity() throws Exception {
+    new CrtAuthServer.Builder()
+        .setServerName(SERVER_NAME)
+        .setSecret("server_secret".getBytes())
+        .setKeyProvider(keyProvider)
+        .setTokenLifetimeSeconds(1000)
+        .build();
+  }
 }
