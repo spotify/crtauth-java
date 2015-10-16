@@ -74,11 +74,10 @@ public class CrtAuthServer {
 
   private static final UnsignedInteger CLOCK_FUDGE = UnsignedInteger.fromIntBits(2);
   private static final UnsignedInteger RESPONSE_TIMEOUT = UnsignedInteger.fromIntBits(20);
-  // the maximum number of seconds the total duration of the validity of a token
-  // can be before the server rejec  private static final int MAX_VALIDITY = 600;
+  // The maximum token lifetime in seconds.
   private static final int MAX_VALIDITY = 600;
   private static final String SIGNATURE_ALGORITHM = "SHA1withRSA";
-  private final UnsignedInteger tokenLifetimeInS;
+  private final UnsignedInteger tokenLifetimeSeconds;
   private final String serverName;
   private final KeyProvider keyProvider;
   private final TimeSupplier timeSupplier;
@@ -89,18 +88,18 @@ public class CrtAuthServer {
 
   public static class Builder {
 
-    private static final UnsignedInteger DEFAULT_TOKEN_LIFETIME_IN_S =
+    private static final UnsignedInteger DEFAULT_TOKEN_LIFETIME_SECONDS =
         UnsignedInteger.fromIntBits(60);
     private static final TimeSupplier DEFAULT_TIME_SUPPLIER = new RealTimeSupplier();
-    private Optional<UnsignedInteger> tokenLifetimeInS = Optional.absent();
+    private Optional<UnsignedInteger> tokenLifetimeSeconds = Optional.absent();
     private String serverName;
     private KeyProvider keyProvider;
     private Optional<TimeSupplier> timeSupplier = Optional.absent();
     private Optional<Random> random = Optional.absent();
     private byte[] secret;
 
-    public Builder setTokenLifetimeInS(int tokenLifetimeInS) {
-      this.tokenLifetimeInS = Optional.of(UnsignedInteger.fromIntBits(tokenLifetimeInS));
+    public Builder setTokenLifetimeSeconds(int tokenLifetimeSeconds) {
+      this.tokenLifetimeSeconds = Optional.of(UnsignedInteger.fromIntBits(tokenLifetimeSeconds));
       return this;
     }
 
@@ -130,11 +129,18 @@ public class CrtAuthServer {
       return this;
     }
 
-    public CrtAuthServer build() {
+    public CrtAuthServer build() throws TokenExpiredException {
       checkNotNull(serverName);
       checkNotNull(keyProvider);
       checkNotNull(secret);
-      return new CrtAuthServer(tokenLifetimeInS.or(DEFAULT_TOKEN_LIFETIME_IN_S),
+
+      final UnsignedInteger lifetime = tokenLifetimeSeconds.or(DEFAULT_TOKEN_LIFETIME_SECONDS);
+      if (lifetime.intValue() > MAX_VALIDITY) {
+        throw new TokenExpiredException(String.format(
+            "Overly long token lifetime. Max lifetime is %d.", MAX_VALIDITY));
+      }
+
+      return new CrtAuthServer(lifetime,
                                serverName,
                                keyProvider,
                                timeSupplier.or(DEFAULT_TIME_SUPPLIER),
@@ -144,10 +150,10 @@ public class CrtAuthServer {
     }
   }
 
-  private CrtAuthServer(UnsignedInteger tokenLifetimeInS, String serverName,
+  private CrtAuthServer(UnsignedInteger tokenLifetimeSeconds, String serverName,
                         KeyProvider keyProvider, TimeSupplier timeSupplier, Random random,
                         byte[] secret) {
-    this.tokenLifetimeInS = tokenLifetimeInS;
+    this.tokenLifetimeSeconds = tokenLifetimeSeconds;
     this.serverName = serverName;
     this.keyProvider = keyProvider;
     this.timeSupplier = timeSupplier;
@@ -254,19 +260,19 @@ public class CrtAuthServer {
                                          "secret key.");
     }
     UnsignedInteger validFrom = timeSupplier.getTime().minus(CLOCK_FUDGE);
-    UnsignedInteger validTo = timeSupplier.getTime().plus(tokenLifetimeInS);
+    UnsignedInteger validTo = timeSupplier.getTime().plus(tokenLifetimeSeconds);
     Token token = new Token(validFrom.intValue(), validTo.intValue(), challenge.getUserName());
     return encode(CrtAuthCodec.serialize(token, secret));
   }
 
   /**
    * Verify that a given token is valid, i.e. that it has been produced by the current authenticator
-   * and that it's not outside of its validity period.
+   * and that it hasn't expired.
    *
    * @param token the token to validate.
    * @return the username that this token belongs to.
    * @throws IllegalArgumentException If the token appears to have been tampered with.
-   * @throws TokenExpiredException    If the token is outside of its validity period.
+   * @throws TokenExpiredException    If the token has expired.
    */
   public String validateToken(String token)
       throws IllegalArgumentException, TokenExpiredException, ProtocolVersionException {
@@ -276,7 +282,7 @@ public class CrtAuthServer {
       throw new TokenExpiredException();
     }
     if (deserializedToken.getValidTo() - deserializedToken.getValidFrom() > MAX_VALIDITY) {
-      throw new TokenExpiredException("Overly long token validity");
+      throw new TokenExpiredException("Overly long token lifetime.");
     }
     return deserializedToken.getUserName();
   }
