@@ -229,4 +229,12 @@ public class CrtAuthServerTest {
         .setTokenLifetimeSeconds(1000)
         .build();
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBuliderFailsOnNoKeyProviders() throws Exception {
+    new CrtAuthServer.Builder()
+        .setServerName(SERVER_NAME)
+        .setSecret("server_secret".getBytes())
+        .build();
+  }
 }

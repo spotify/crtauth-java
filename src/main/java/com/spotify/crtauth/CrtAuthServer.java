@@ -140,6 +140,10 @@ public class CrtAuthServer {
       checkNotNull(keyProviders);
       checkNotNull(secret);
 
+      if (keyProviders.isEmpty()) {
+        throw new IllegalArgumentException("At least one key provider must be specified.");
+      }
+
       final UnsignedInteger lifetime = tokenLifetimeSeconds.or(DEFAULT_TOKEN_LIFETIME_SECONDS);
       if (lifetime.intValue() > MAX_VALIDITY) {
         throw new IllegalArgumentException(String.format(
