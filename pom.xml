@@ -190,7 +190,6 @@
           <serverId>ossrh</serverId>
           <nexusUrl>https://oss.sonatype.org/</nexusUrl>
           <autoReleaseAfterClose>${autoReleaseAfterClose}</autoReleaseAfterClose>
-          <skipRemoteStaging>true</skipRemoteStaging>
           <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
         </configuration>
       </plugin>
