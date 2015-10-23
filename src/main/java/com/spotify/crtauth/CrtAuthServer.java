@@ -125,14 +125,14 @@ public class CrtAuthServer {
       return this;
     }
 
-    public CrtAuthServer build() throws TokenExpiredException {
+    public CrtAuthServer build() {
       checkNotNull(serverName);
       checkNotNull(keyProvider);
       checkNotNull(secret);
 
       final UnsignedInteger lifetime = tokenLifetimeSeconds.or(DEFAULT_TOKEN_LIFETIME_SECONDS);
       if (lifetime.intValue() > MAX_VALIDITY) {
-        throw new TokenExpiredException(String.format(
+        throw new IllegalArgumentException(String.format(
             "Overly long token lifetime. Max lifetime is %d.", MAX_VALIDITY));
       }
 

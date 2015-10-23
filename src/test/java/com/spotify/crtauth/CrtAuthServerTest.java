@@ -193,7 +193,7 @@ public class CrtAuthServerTest {
     crtAuthServer.validateToken(ts);
   }
 
-  @Test(expected = TokenExpiredException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testBuilderFailsOnOverlyLongTokenValidity() throws Exception {
     new CrtAuthServer.Builder()
         .setServerName(SERVER_NAME)
