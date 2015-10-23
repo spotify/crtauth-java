@@ -20,6 +20,7 @@ package com.spotify.crtauth;
 import com.spotify.crtauth.exceptions.ProtocolVersionException;
 import com.spotify.crtauth.exceptions.TokenExpiredException;
 import com.spotify.crtauth.keyprovider.InMemoryKeyProvider;
+import com.spotify.crtauth.keyprovider.KeyProvider;
 import com.spotify.crtauth.protocol.CrtAuthCodec;
 import com.spotify.crtauth.protocol.Token;
 import com.spotify.crtauth.signer.Signer;
@@ -133,6 +134,32 @@ public class CrtAuthServerTest {
     CrtAuthCodec.deserializeChallenge(ASCIICodec.decode(encodedChallenge));
   }
 
+  @Test
+  public void testCreateChallengeMultipleKeyProviders() throws Exception {
+    KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+
+    InMemoryKeyProvider keyProvider1 = new InMemoryKeyProvider();
+    RSAPublicKeySpec publicKeySpec = TraditionalKeyParser.parsePemPublicKey(PUBLIC_KEY);
+    RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
+    keyProvider1.putKey("test", publicKey);
+
+    InMemoryKeyProvider keyProvider2 = new InMemoryKeyProvider();
+    RSAPublicKeySpec noaPublicKeySpec = TraditionalKeyParser.parsePemPublicKey(NOA_PUBLIC_KEY);
+    RSAPublicKey noaPublicKey = (RSAPublicKey) keyFactory.generatePublic(noaPublicKeySpec);
+    keyProvider2.putKey("noa", noaPublicKey);
+
+    byte[] serverSecret = "spotify".getBytes();
+    CrtAuthServer crtAuthServer = new CrtAuthServer.Builder()
+        .setServerName("server_name")
+        .setSecret(serverSecret)
+        .addKeyProvider(keyProvider1)
+        .addKeyProvider(keyProvider2)
+        .build();
+    String challenge = crtAuthServer.createChallenge(CrtAuthClient.createRequest("noa"));
+    Fingerprint expectedFingerprint = new Fingerprint(decode("-6Hqb9N5"));
+    Assert.assertTrue(extractFingerprint(challenge).equals(expectedFingerprint));
+  }
+
   private Fingerprint extractFingerprint(String challenge) throws ProtocolVersionException {
     return CrtAuthCodec.deserializeChallenge(decode(challenge)).getFingerprint();
   }
@@ -200,6 +227,14 @@ public class CrtAuthServerTest {
         .setSecret("server_secret".getBytes())
         .setKeyProvider(keyProvider)
         .setTokenLifetimeSeconds(1000)
+        .build();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBuliderFailsOnNoKeyProviders() throws Exception {
+    new CrtAuthServer.Builder()
+        .setServerName(SERVER_NAME)
+        .setSecret("server_secret".getBytes())
         .build();
   }
 }

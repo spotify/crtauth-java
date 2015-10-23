@@ -19,6 +19,8 @@ package com.spotify.crtauth;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedInteger;
 
 import com.spotify.crtauth.exceptions.KeyNotFoundException;
@@ -37,7 +39,9 @@ import org.slf4j.LoggerFactory;
 
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -75,7 +79,7 @@ public class CrtAuthServer {
   private static final String SIGNATURE_ALGORITHM = "SHA1withRSA";
   private final UnsignedInteger tokenLifetimeSeconds;
   private final String serverName;
-  private final KeyProvider keyProvider;
+  private final List<KeyProvider> keyProviders;
   private final TimeSupplier timeSupplier;
   private final Random random;
   private final byte[] secret;
@@ -89,7 +93,7 @@ public class CrtAuthServer {
     private static final TimeSupplier DEFAULT_TIME_SUPPLIER = new RealTimeSupplier();
     private Optional<UnsignedInteger> tokenLifetimeSeconds = Optional.absent();
     private String serverName;
-    private KeyProvider keyProvider;
+    private List<KeyProvider> keyProviders = Lists.newArrayList();
     private Optional<TimeSupplier> timeSupplier = Optional.absent();
     private Optional<Random> random = Optional.absent();
     private byte[] secret;
@@ -104,8 +108,14 @@ public class CrtAuthServer {
       return this;
     }
 
+    public Builder addKeyProvider(KeyProvider keyProvider) {
+      this.keyProviders.add(keyProvider);
+      return this;
+    }
+
     public Builder setKeyProvider(KeyProvider keyProvider) {
-      this.keyProvider = keyProvider;
+      this.keyProviders.clear();
+      this.keyProviders.add(keyProvider);
       return this;
     }
 
@@ -127,8 +137,12 @@ public class CrtAuthServer {
 
     public CrtAuthServer build() {
       checkNotNull(serverName);
-      checkNotNull(keyProvider);
+      checkNotNull(keyProviders);
       checkNotNull(secret);
+
+      if (keyProviders.isEmpty()) {
+        throw new IllegalArgumentException("At least one key provider must be specified.");
+      }
 
       final UnsignedInteger lifetime = tokenLifetimeSeconds.or(DEFAULT_TOKEN_LIFETIME_SECONDS);
       if (lifetime.intValue() > MAX_VALIDITY) {
@@ -138,7 +152,7 @@ public class CrtAuthServer {
 
       return new CrtAuthServer(lifetime,
                                serverName,
-                               keyProvider,
+                               keyProviders,
                                timeSupplier.or(DEFAULT_TIME_SUPPLIER),
                                random.or(new Random()),
                                secret
@@ -147,11 +161,11 @@ public class CrtAuthServer {
   }
 
   private CrtAuthServer(UnsignedInteger tokenLifetimeSeconds, String serverName,
-                        KeyProvider keyProvider, TimeSupplier timeSupplier, Random random,
+                        List<KeyProvider> keyProviders, TimeSupplier timeSupplier, Random random,
                         byte[] secret) {
     this.tokenLifetimeSeconds = tokenLifetimeSeconds;
     this.serverName = serverName;
-    this.keyProvider = keyProvider;
+    this.keyProviders = ImmutableList.copyOf(keyProviders);
     this.timeSupplier = timeSupplier;
     this.random = random;
     checkArgument(secret != null && secret.length > 0);
@@ -178,7 +192,7 @@ public class CrtAuthServer {
 
     Fingerprint fingerprint;
     try {
-      fingerprint = new Fingerprint(keyProvider.getKey(userName));
+      fingerprint = new Fingerprint(getKeyForUser(userName));
     } catch (KeyNotFoundException e) {
       log.info("No public key found for user {}, creating fake fingerprint", userName);
       fingerprint = createFakeFingerprint(userName);
@@ -197,6 +211,32 @@ public class CrtAuthServer {
         .build();
 
     return encode(CrtAuthCodec.serialize(challenge, secret));
+  }
+
+  /**
+   * Get the public key for a user by iterating through all key providers. The first
+   * matching key will be returned.
+   *
+   * @param userName the username to get the key for
+   * @return the first RSAPublicKey found for the user
+   * @throws KeyNotFoundException
+   */
+  private RSAPublicKey getKeyForUser(String userName) throws KeyNotFoundException {
+    RSAPublicKey key = null;
+    for (final KeyProvider keyProvider : keyProviders) {
+      try {
+        key = keyProvider.getKey(userName);
+        break;
+      } catch (KeyNotFoundException e) {
+        // that's fine, try the next provider
+      }
+    }
+
+    if (key == null) {
+      throw new KeyNotFoundException();
+    }
+
+    return key;
   }
 
   /**
@@ -232,7 +272,7 @@ public class CrtAuthServer {
     }
     PublicKey publicKey;
     try {
-      publicKey = keyProvider.getKey(challenge.getUserName());
+      publicKey = getKeyForUser(challenge.getUserName());
     } catch (KeyNotFoundException e) {
       // If the user requesting authentication doesn't have a public key,  we throw an
       // InvalidInputException. This normally shouldn't happen, since at this stage a challenge
