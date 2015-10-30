@@ -16,14 +16,13 @@ tools that interacts with a central server without resorting to authentication
 using a shared secret, such as a password.
 
 If you are looking at building a client in Java and would like to connect to a local
-ssh-agent, here's some code:
+ssh-agent, here's how:
 
-* [crtauth-java-agent-signer][5]
-  * only depends on [com.github.jnr:jnr-unixsocket][1] and [commons-codec:commons-codec][2]
-* [crtauth-java-agent-signer-apache][6]
-  * depends on [Apache sshd-core library][7] and [Tomcat native library][8] to implement UNIX
-    socket communication
 
+```java
+final AgentSigner signer = new AgentSigner();
+final byte[] signed = signer.sign(new byte[] {1, 2, 3, 4}, new Fingerprint(publicKey));
+```
 
 ## License
 

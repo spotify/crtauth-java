@@ -57,6 +57,11 @@
       <artifactId>slf4j-api</artifactId>
       <version>1.7.7</version>
     </dependency>
+    <dependency>
+      <groupId>com.spotify</groupId>
+      <artifactId>ssh-agent-proxy</artifactId>
+      <version>0.1.2</version>
+    </dependency>
 
     <!-- test deps -->
     <dependency>
