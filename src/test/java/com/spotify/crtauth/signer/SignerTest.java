@@ -73,7 +73,7 @@ public abstract class SignerTest<T extends Signer> {
   private T instance;
   private RSAPublicKey publicKey;
 
-  protected abstract T getInstance(KeyPair keyPair);
+  protected abstract T getInstance(KeyPair keyPair) throws Exception;
 
   @Before
   public void setup() throws Exception {
